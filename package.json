@@ -1,0 +1,28 @@
+{
+  "name": "dicomweb-proxy",
+  "version": "0.0.1",
+  "description": "A proxy to translate between dicomweb and dimse",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/knopkem/dicomweb-proxy.git"
+  },
+  "keywords": [
+    "DICOMWEB",
+    "PROXY",
+    "DIMSE",
+    "DICOM"
+  ],
+  "author": "Michael Knopke",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/knopkem/dicomweb-proxy/issues"
+  },
+  "homepage": "https://github.com/knopkem/dicomweb-proxy#readme",
+  "dependencies": {
+    "dicom-dimse-native": "0.0.2"
+  }
+}
