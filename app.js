@@ -48,6 +48,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/studies', (req, res) => {
+
   const j = {
     "source": {
         "aet": "IMEBRA",
@@ -72,7 +73,26 @@ app.get('/studies', (req, res) => {
   if (includes) {
     const tags = includes.split(','); 
     if (Array.isArray(tags)) {
+      // fix for OHIF viewer assuming a lot of tags
+      tags.push('00080005');
+      tags.push('00080020');
+      tags.push('00080030');
+      tags.push('00080050');
+      tags.push('00080054');
+      tags.push('00080056');
+      tags.push('00080061');
+      tags.push('00080090');
+      tags.push('00081190');
+      tags.push('00100010');
+      tags.push('00100020');
+      tags.push('00100030');
+      tags.push('00100040');
+      tags.push('0020000D');
+      tags.push('00200010');
+      tags.push('00201206');
+      tags.push('00201208');
       tags.forEach(element => {
+        // todo check if we need to convert to tag first
         j.tags.push({"key": element, "value": ""});
       });
     }
