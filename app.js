@@ -48,8 +48,6 @@ app.get('/', (req, res) => {
 });
 
 app.get('/studies', (req, res) => {
-  winston.info('request received');
-
   const j = {
     "source": {
         "aet": "IMEBRA",
@@ -92,7 +90,7 @@ app.get('/studies', (req, res) => {
   // console.log(j);
   dimse.findScu(JSON.stringify(j), (result) => {
         const json =  JSON.parse(result);
-        console.log("result: ", json);
+        // console.log("result: ", json);
         res.setHeader('Content-Type', 'application/json');
         res.json(json);
     });
