@@ -24,8 +24,6 @@ const winston = new (winstonLib.Logger)({
 
 winston.add(winstonLib.transports.Console);
 
-
-
 const app = express();
 app.use(express.static('public'));
 
@@ -44,35 +42,29 @@ process.on('uncaughtException', (err) => {
   winston.error(err.stack);
 });
 
-app.get('/', (req, res) => {
-});
-
 app.get('/studies', (req, res) => {
 
+  // add query retrieve level
   const j = {
-    "source": {
-        "aet": "IMEBRA",
-        "ip" : "127.0.0.1",
-        "port": "9999"
-    },
-    "target": {
-        "aet": "CONQUESTSRV1",
-        "ip" : "127.0.0.1",
-        "port": "5678"
-    },
-    "tags" : [
+    'tags' : [
       {
-      "key": "00080052", 
-      "value": "STUDY",
+      'key': '00080052', 
+      'value': 'STUDY',
       },
     ]
   };
 
+  // set source and target from config
+  j.source = config.get('source');
+  j.target = config.get('target');
+
+  // parse all include fields
   const includes = req.query.includefield;
 
   if (includes) {
     const tags = includes.split(','); 
     if (Array.isArray(tags)) {
+
       // fix for OHIF viewer assuming a lot of tags
       tags.push('00080005');
       tags.push('00080020');
@@ -91,29 +83,36 @@ app.get('/studies', (req, res) => {
       tags.push('00200010');
       tags.push('00201206');
       tags.push('00201208');
+
+      // add parsed tags
       tags.forEach(element => {
         // todo check if we need to convert to tag first
-        j.tags.push({"key": element, "value": ""});
+        j.tags.push({'key': element, 'value': ''});
       });
     }
   }
 
+  // add search params
   for (const propName in req.query) {
     if (req.query.hasOwnProperty(propName)) {
       const tag = findDicomName(propName);
       if (tag) {
-        j.tags.push({"key": tag, "value": req.query[propName]});
+        j.tags.push({'key': tag, 'value': req.query[propName]});
       }
     }
   }
 
-  // console.log(j);
+  // run find scu and return json response
   dimse.findScu(JSON.stringify(j), (result) => {
-        const json =  JSON.parse(result);
-        // console.log("result: ", json);
-        res.setHeader('Content-Type', 'application/json');
-        res.json(json);
-    });
+    try {
+      const json =  JSON.parse(result);
+      res.setHeader('Content-Type', 'application/json');
+      res.json(json);
+    } catch (error) {
+      console.error(error);
+      console.log(result);
+    }
+  });
 
 });
 
