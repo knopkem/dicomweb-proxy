@@ -61,36 +61,36 @@ app.get('/studies', (req, res) => {
   // parse all include fields
   const includes = req.query.includefield;
 
+
+  let tags = [];
   if (includes) {
-    const tags = includes.split(','); 
-    if (Array.isArray(tags)) {
-
-      // fix for OHIF viewer assuming a lot of tags
-      tags.push('00080005');
-      tags.push('00080020');
-      tags.push('00080030');
-      tags.push('00080050');
-      tags.push('00080054');
-      tags.push('00080056');
-      tags.push('00080061');
-      tags.push('00080090');
-      tags.push('00081190');
-      tags.push('00100010');
-      tags.push('00100020');
-      tags.push('00100030');
-      tags.push('00100040');
-      tags.push('0020000D');
-      tags.push('00200010');
-      tags.push('00201206');
-      tags.push('00201208');
-
-      // add parsed tags
-      tags.forEach(element => {
-        // todo check if we need to convert to tag first
-        j.tags.push({'key': element, 'value': ''});
-      });
-    }
+    let tags = includes.split(',');
   }
+
+  // fix for OHIF viewer assuming a lot of tags
+  tags.push('00080005');
+  tags.push('00080020');
+  tags.push('00080030');
+  tags.push('00080050');
+  tags.push('00080054');
+  tags.push('00080056');
+  tags.push('00080061');
+  tags.push('00080090');
+  tags.push('00081190');
+  tags.push('00100010');
+  tags.push('00100020');
+  tags.push('00100030');
+  tags.push('00100040');
+  tags.push('0020000D');
+  tags.push('00200010');
+  tags.push('00201206');
+  tags.push('00201208');
+
+  // add parsed tags
+  tags.forEach(element => {
+    // todo check if we need to convert to tag first
+    j.tags.push({'key': element, 'value': ''});
+  });
 
   // add search params
   for (const propName in req.query) {
@@ -106,15 +106,176 @@ app.get('/studies', (req, res) => {
   dimse.findScu(JSON.stringify(j), (result) => {
     try {
       const json =  JSON.parse(result);
-      res.setHeader('Content-Type', 'application/json');
       res.json(json);
     } catch (error) {
       console.error(error);
       console.log(result);
+      res.json([]);
     }
   });
 
 });
+
+
+app.get('/studies/:studyInstanceUid/series', (req, res) => {
+
+    // add query retrieve level
+    const j = {
+      'tags' : [
+        {
+        'key': '00080052', 
+        'value': 'SERIES',
+        },
+      ]
+    };
+  
+    // set source and target from config
+    j.source = config.get('source');
+    j.target = config.get('target');
+  
+    // parse all include fields
+    const includes = req.query.includefield;
+  
+    let tags = [];
+    if (includes) {
+      let tags = includes.split(',');
+    }
+ 
+    // fix for OHIF viewer assuming a lot of tags
+    tags.push('00080005');
+    tags.push('00080054');
+    tags.push('00080056');
+    tags.push('00080060');
+    tags.push('0008103E');
+    tags.push('00081190');
+    tags.push('0020000E');
+    tags.push('00200011');
+    tags.push('00201209');
+    
+    // add parsed tags
+    tags.forEach(element => {
+      // todo check if we need to convert to tag first
+      j.tags.push({'key': element, 'value': ''});
+    });
+  
+    // add search params
+    for (const propName in req.query) {
+      if (req.query.hasOwnProperty(propName)) {
+        const tag = findDicomName(propName);
+        if (tag) {
+          j.tags.push({'key': tag, 'value': req.query[propName]});
+        }
+      }
+    }
+
+    // add study uid
+    j.tags.push({'key': '0020000D', 'value': req.params.studyInstanceUid});
+  
+    // run find scu and return json response
+    dimse.findScu(JSON.stringify(j), (result) => {
+      try {
+        const json =  JSON.parse(result);
+        res.json(json);
+      } catch (error) {
+        console.error(error);
+        console.log(result);
+        res.json([]);
+      }
+    });
+  
+});
+
+app.get('/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', (req, res) => {
+
+  // add query retrieve level
+  const j = {
+    'tags' : [
+      {
+      'key': '00080052', 
+      'value': 'IMAGE',
+      },
+    ]
+  };
+
+  // set source and target from config
+  j.source = config.get('source');
+  j.target = config.get('target');
+
+  // parse all include fields
+  const includes = req.query.includefield;
+
+  let tags = [];
+  if (includes) {
+    let tags = includes.split(',');
+  }
+
+  // fix for OHIF viewer assuming a lot of tags
+  /*
+  tags.push('00080005');
+  tags.push('00080012');
+  tags.push('00080013');
+  tags.push('00080016');
+  tags.push('00080018');
+  tags.push('00080020');
+  tags.push('00080023');
+  tags.push('00080030');
+  tags.push('00080033');
+  tags.push('00080050');
+  tags.push('00080060');
+  tags.push('00080064');
+  tags.push('00080090');
+  tags.push('00081030');
+  tags.push('0008103E');
+  tags.push('00100010');
+  tags.push('00100020');
+  tags.push('00100030');
+  tags.push('00100040');
+  tags.push('00101010');
+  tags.push('0020000D');
+  tags.push('00200010');
+  tags.push('00200011');
+  tags.push('00200013');
+  tags.push('00280301');
+  tags.push('0040A493');
+  tags.push('00420010');
+  tags.push('00420011');
+  tags.push('00420012');
+  */
+ 
+    // add parsed tags
+  tags.forEach(element => {
+    // todo check if we need to convert to tag first
+    j.tags.push({'key': element, 'value': ''});
+  });
+
+  // add search params
+  for (const propName in req.query) {
+    if (req.query.hasOwnProperty(propName)) {
+      const tag = findDicomName(propName);
+      if (tag) {
+        j.tags.push({'key': tag, 'value': req.query[propName]});
+      }
+    }
+  }
+
+  // add study and series uid
+  j.tags.push({'key': '0020000D', 'value': req.params.studyInstanceUid});
+  j.tags.push({'key': '0020000E', 'value': req.params.seriesInstanceUid});
+
+  // run find scu and return json response
+  dimse.findScu(JSON.stringify(j), (result) => {
+    try {
+      const json =  JSON.parse(result);
+      res.json(json);
+    } catch (error) {
+      console.error(error);
+      console.log(result);
+      res.json([]);
+    }
+  });
+
+});
+
 
 app.listen(config.get('port'), () => {
   winston.info(`server listening on port: ${config.get('port')}`);
