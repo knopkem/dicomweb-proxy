@@ -4,6 +4,7 @@ const winstonLib = require('winston');
 const dimse = require('dicom-dimse-native');
 const shell = require('shelljs');
 const dict = require('dicom-data-dictionary');
+const fs = require('fs');
 require('winston-daily-rotate-file');
 
 shell.mkdir('-p', config.get('logDir'));
@@ -210,12 +211,12 @@ app.get('/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', (req, r
   }
 
   // fix for OHIF viewer assuming a lot of tags
+  tags.push('00080016');
+  tags.push('00080018');
   /*
   tags.push('00080005');
   tags.push('00080012');
   tags.push('00080013');
-  tags.push('00080016');
-  tags.push('00080018');
   tags.push('00080020');
   tags.push('00080023');
   tags.push('00080030');
@@ -274,6 +275,41 @@ app.get('/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', (req, r
     }
   });
 
+});
+
+app.get('/wado', (req, res) => {
+  const studyUid = req.query.studyUID;
+  const seriesUid = req.query.seriesUID;
+  const imageUid = req.query.objectUID;
+  console.log(studyUid, seriesUid, imageUid);
+
+  const pathname = 'c:/dicom/samplemr.dcm';
+
+  fs.exists(pathname, function (exist) {
+    if(!exist) {
+      // if the file is not found, return 404
+      res.statusCode = 404;
+      res.end(`File ${pathname} not found!`);
+      return;
+    }
+
+    // if is a directory, then look for index.html
+    if (fs.statSync(pathname).isDirectory()) {
+      pathname += '/index.html';
+    }
+
+    // read file from file system
+    fs.readFile(pathname, function(err, data){
+      if(err){
+        res.statusCode = 500;
+        res.end(`Error getting the file: ${err}.`);
+      } else {
+        // if the file is found, set Content-type and send data
+        res.setHeader('Content-type', 'application/dicom' );
+        res.end(data);
+      }
+    });
+  });
 });
 
 
