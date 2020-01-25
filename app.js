@@ -5,6 +5,8 @@ const dimse = require('dicom-dimse-native');
 const shell = require('shelljs');
 const dict = require('dicom-data-dictionary');
 const fs = require('fs');
+const crypto = require('crypto');
+
 require('winston-daily-rotate-file');
 
 shell.mkdir('-p', config.get('logDir'));
@@ -275,6 +277,49 @@ app.get('/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', (req, r
     }
   });
 
+});
+
+app.get('/studies/:studyUid/series/:seriesUid/instances/:instanceUid/frames/:frame', (req, res) => {
+
+  const pathname = 'c:/dicom/samplemr.dcm';
+
+  fs.exists(pathname, function (exist) {
+    if(!exist) {
+      // if the file is not found, return 404
+      res.statusCode = 404;
+      res.end(`File ${pathname} not found!`);
+      return;
+    }
+
+    // if is a directory, then look for index.html
+    if (fs.statSync(pathname).isDirectory()) {
+      pathname += '/index.html';
+    }
+
+    // read file from file system
+    fs.readFile(pathname, function(err, data){
+      if(err){
+        res.statusCode = 500;
+        res.end(`Error getting the file: ${err}.`);
+      } else {
+        const term = '\r\n';
+        const boundary = crypto.randomBytes(16).toString('hex');
+        const contentId = crypto.randomBytes(16).toString('hex');
+        const endline = `${term}--${boundary}--${term}`;
+
+        res.writeHead(200, { 'Content-Type': `multipart/related;start=${contentId};type="application/octed-stream";boundary="${boundary}"` });
+
+        res.write(`${term}--${boundary}${term}`);
+        res.write(`Content-Location:localhost${term}`);
+        res.write(`Content-ID:${contentId}${term}`);
+        res.write(`Content-Type:application/octet-stream${term}`);
+        res.write(term);
+        res.write(data);
+        res.write(endline);
+        res.end();
+      }
+    });
+  });
 });
 
 app.get('/wado', (req, res) => {
