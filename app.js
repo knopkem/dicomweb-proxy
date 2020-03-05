@@ -6,6 +6,7 @@ const shell = require('shelljs');
 const dict = require('dicom-data-dictionary');
 const fs = require('fs');
 const crypto = require('crypto');
+const os = require('os');
 
 require('winston-daily-rotate-file');
 
@@ -327,6 +328,28 @@ app.get('/wado', (req, res) => {
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
   console.log(studyUid, seriesUid, imageUid);
+
+  // add query retrieve level and fetch whole study
+  const j = {
+    'tags' : [
+      {
+      'key': '00080052', 
+      'value': 'STUDY',
+      },
+      {
+      'key': '0020000D', 
+      'value': studyUid,
+      },
+    ]
+  };
+
+  // set source and target from config
+  j.source = config.get('source');
+  j.target = config.get('target');
+  
+  dimse.getScu(JSON.stringify(j), (result) => {
+      console.log(result);
+  });
 
   const pathname = 'c:/dicom/samplemr.dcm';
 

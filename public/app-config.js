@@ -8,13 +8,13 @@ window.config = {
   servers: {
     dicomWeb: [
       {
-        name: 'DCM4CHEE',
+        name: 'PROXY',
         wadoUriRoot: 'http://localhost:5000/wado',
         qidoRoot: 'http://localhost:5000',
         wadoRoot: 'http://localhost:5000',
         qidoSupportsIncludeField: true,
-        imageRendering: 'wadors',
-        thumbnailRendering: 'wadors',
+        imageRendering: 'wadouri',
+        thumbnailRendering: 'wadouri',
         enableStudyLazyLoad: true,
       },
     ],
