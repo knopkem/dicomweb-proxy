@@ -211,35 +211,6 @@ app.get(
     // fix for OHIF viewer assuming a lot of tags
     tags.push("00080016");
     tags.push("00080018");
-    /*
-  tags.push('00080005');
-  tags.push('00080012');
-  tags.push('00080013');
-  tags.push('00080020');
-  tags.push('00080023');
-  tags.push('00080030');
-  tags.push('00080033');
-  tags.push('00080050');
-  tags.push('00080060');
-  tags.push('00080064');
-  tags.push('00080090');
-  tags.push('00081030');
-  tags.push('0008103E');
-  tags.push('00100010');
-  tags.push('00100020');
-  tags.push('00100030');
-  tags.push('00100040');
-  tags.push('00101010');
-  tags.push('0020000D');
-  tags.push('00200010');
-  tags.push('00200011');
-  tags.push('00200013');
-  tags.push('00280301');
-  tags.push('0040A493');
-  tags.push('00420010');
-  tags.push('00420011');
-  tags.push('00420012');
-  */
 
     // add parsed tags
     tags.forEach(element => {
