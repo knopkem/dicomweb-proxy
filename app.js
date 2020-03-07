@@ -46,7 +46,7 @@ process.on("uncaughtException", err => {
   winston.error(err.stack);
 });
 
-app.get("/studies", (req, res) => {
+app.get("/rs/studies", (req, res) => {
   // add query retrieve level
   const j = {
     tags: [
@@ -117,7 +117,7 @@ app.get("/studies", (req, res) => {
   });
 });
 
-app.get("/studies/:studyInstanceUid/series", (req, res) => {
+app.get("/viewer/rs/studies/:studyInstanceUid/series", (req, res) => {
   // add query retrieve level
   const j = {
     tags: [
@@ -184,7 +184,7 @@ app.get("/studies/:studyInstanceUid/series", (req, res) => {
 });
 
 app.get(
-  "/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata",
+  "/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata",
   (req, res) => {
     // add query retrieve level
     const j = {
@@ -325,7 +325,7 @@ const waitOrFetchData = studyUid => {
   return fetchData(studyUid);
 };
 
-app.get("/wado", async (req, res) => {
+app.get("/viewer/wadouri", async (req, res) => {
   const studyUid = req.query.studyUID;
   // const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;

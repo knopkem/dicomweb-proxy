@@ -9,9 +9,9 @@ window.config = {
     dicomWeb: [
       {
         name: 'PROXY',
-        wadoUriRoot: 'http://localhost:5000/wado',
-        qidoRoot: 'http://localhost:5000',
-        wadoRoot: 'http://localhost:5000',
+        wadoUriRoot: 'wadouri',
+        qidoRoot: 'rs',
+        wadoRoot: 'rs',
         qidoSupportsIncludeField: true,
         imageRendering: 'wadouri',
         thumbnailRendering: 'wadouri',
