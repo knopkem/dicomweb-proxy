@@ -5,14 +5,13 @@ const dimse = require("dicom-dimse-native");
 const shell = require("shelljs");
 const dict = require("dicom-data-dictionary");
 const fs = require("fs");
-const crypto = require("crypto");
-const os = require("os");
 
 const lock = new Map();
 
 require("winston-daily-rotate-file");
 
 shell.mkdir("-p", config.get("logDir"));
+shell.mkdir("-p", "./data");
 
 const dailyRotateFile = new winstonLib.transports.DailyRotateFile({
   filename: `${config.get("logDir")}/app-%DATE%.log`, // last part is the filename suffix
@@ -107,8 +106,10 @@ app.get("/rs/studies", (req, res) => {
   // run find scu and return json response
   dimse.findScu(JSON.stringify(j), result => {
     try {
-      const json = JSON.parse(result);
-      res.json(json);
+      const j = JSON.parse(result);
+      if (j.code === 0) {
+        res.json(JSON.parse(j.container));
+      }
     } catch (error) {
       winston.error(error);
       winston.inso(result);
@@ -173,8 +174,10 @@ app.get("/viewer/rs/studies/:studyInstanceUid/series", (req, res) => {
   // run find scu and return json response
   dimse.findScu(JSON.stringify(j), result => {
     try {
-      const json = JSON.parse(result);
-      res.json(json);
+      const j = JSON.parse(result);
+      if (j.code === 0) {
+        res.json(JSON.parse(j.container));
+      }
     } catch (error) {
       winston.error(error);
       winston.info(result);
@@ -235,8 +238,10 @@ app.get(
     // run find scu and return json response
     dimse.findScu(JSON.stringify(j), result => {
       try {
-        const json = JSON.parse(result);
-        res.json(json);
+        const j = JSON.parse(result);
+        if (j.code === 0) {
+          res.json(JSON.parse(j.container));
+        }
       } catch (error) {
         winston.error(error);
         winston.info(result);
@@ -279,8 +284,15 @@ const fetchData = studyUid => {
 
   const prom = new Promise((resolve, reject) => {
     dimse.getScu(JSON.stringify(j), result => {
+      try {
+        const j = JSON.parse(result);
+        if (j.code === 0) {
+          resolve(result);
+        }
+      } catch (error) {
+        reject(error);
+      }
       lock.delete(studyUid);
-      resolve(result);
     });
   });
   // store in lock
@@ -300,7 +312,7 @@ app.get("/viewer/wadouri", async (req, res) => {
   const studyUid = req.query.studyUID;
   // const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
-  const pathname = "./" + imageUid + ".dcm";
+  const pathname = "./data/" + imageUid + ".dcm";
 
   try {
     await fileExists(pathname);
