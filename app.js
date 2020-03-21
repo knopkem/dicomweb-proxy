@@ -263,17 +263,21 @@ const fileExists = pathname => {
   });
 };
 
-const fetchData = studyUid => {
+const fetchData = (studyUid, seriesUid) => {
   // add query retrieve level and fetch whole study
   const j = {
     tags: [
       {
         key: "00080052",
-        value: "STUDY"
+        value: "SERIES"
       },
       {
         key: "0020000D",
         value: studyUid
+      },
+      {
+        key: "0020000E",
+        value: seriesUid
       }
     ]
   };
@@ -281,43 +285,49 @@ const fetchData = studyUid => {
   // set source and target from config
   j.source = config.get("source");
   j.target = config.get("target");
+  j.storagePath = config.get("source");
 
   const prom = new Promise((resolve, reject) => {
-    dimse.getScu(JSON.stringify(j), result => {
-      try {
-        const j = JSON.parse(result);
-        if (j.code === 0) {
-          resolve(result);
+    try {
+      dimse.getScu(JSON.stringify(j), result => {
+        try {
+          const j = JSON.parse(result);
+          if (j.code === 0) {
+            resolve(result);
+          }
+        } catch (error) {
+          reject(error);
         }
-      } catch (error) {
-        reject(error);
-      }
-      lock.delete(studyUid);
-    });
+        lock.delete(seriesUid);
+      });
+    } catch (error) {
+      reject(error);
+    }
   });
   // store in lock
-  lock.set(studyUid, prom);
+  lock.set(seriesUid, prom);
   return prom;
 };
 
-const waitOrFetchData = studyUid => {
+const waitOrFetchData = (studyUid, seriesUid) => {
   // check if already locked and return promise
-  if (lock.has(studyUid)) {
-    return lock.get(studyUid);
+  if (lock.has(seriesUid)) {
+    return lock.get(seriesUid);
   }
-  return fetchData(studyUid);
+  return fetchData(studyUid, seriesUid);
 };
 
 app.get("/viewer/wadouri", async (req, res) => {
   const studyUid = req.query.studyUID;
-  // const seriesUid = req.query.seriesUID;
+  const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
-  const pathname = "./data/" + imageUid + ".dcm";
+  const pathname =
+    config.get("storagePath") + "/" + studyUid + "/" + imageUid + ".dcm";
 
   try {
     await fileExists(pathname);
   } catch (error) {
-    await waitOrFetchData(studyUid);
+    await waitOrFetchData(studyUid, seriesUid);
   }
 
   // read file from file system

@@ -15,4 +15,6 @@ config.target = {
     port: '5678'
 };
 
+config.storagePath = './data';
+
 module.exports = config;
