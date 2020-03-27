@@ -5,6 +5,7 @@ const dimse = require("dicom-dimse-native");
 const shell = require("shelljs");
 const dict = require("dicom-data-dictionary");
 const fs = require("fs");
+const storage = require("node-persist");
 
 const lock = new Map();
 
@@ -263,7 +264,7 @@ const fileExists = pathname => {
   });
 };
 
-const fetchData = (studyUid, seriesUid) => {
+const fetchData = async (studyUid, seriesUid) => {
   // add query retrieve level and fetch whole study
   const j = {
     tags: [
@@ -293,6 +294,11 @@ const fetchData = (studyUid, seriesUid) => {
         try {
           const j = JSON.parse(result);
           if (j.code === 0) {
+            storage.getItem(studyUid).then(item => {
+              if (!item) {
+                storage.setItem(studyUid, addMinutes(new Date(), 1));
+              }
+            });
             resolve(result);
           }
         } catch (error) {
@@ -309,6 +315,10 @@ const fetchData = (studyUid, seriesUid) => {
   return prom;
 };
 
+const addMinutes = (date, minutes) => {
+  return new Date(date.getTime() + minutes * 60000);
+};
+
 const waitOrFetchData = (studyUid, seriesUid) => {
   // check if already locked and return promise
   if (lock.has(seriesUid)) {
@@ -321,8 +331,8 @@ app.get("/viewer/wadouri", async (req, res) => {
   const studyUid = req.query.studyUID;
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
-  const pathname =
-    config.get("storagePath") + "/" + studyUid + "/" + imageUid + ".dcm";
+  const directory = config.get("storagePath") + "/" + studyUid;
+  const pathname = directory + "/" + imageUid + ".dcm";
 
   try {
     await fileExists(pathname);
@@ -340,8 +350,36 @@ app.get("/viewer/wadouri", async (req, res) => {
     res.setHeader("Content-type", "application/dicom");
     res.end(data);
   });
+
+  // clear data
+  const currentDate = new Date();
+  await storage.forEach(item => {
+    const dt = new Date(item.value);
+    if (dt.getTime() < currentDate.getTime()) {
+      deleteFolderRecursive(directory);
+      winston.info("deleted", directory);
+      storage.rm(item.key); // not nice but seems to work
+    }
+  });
 });
 
-app.listen(config.get("port"), () => {
-  winston.info(`server listening on port: ${config.get("port")}`);
+const deleteFolderRecursive = path => {
+  if (fs.existsSync(path)) {
+    fs.readdirSync(path).forEach(function(file, index) {
+      var curPath = path + "/" + file;
+      if (fs.lstatSync(curPath).isDirectory()) {
+        // recurse
+        deleteFolderRecursive(curPath);
+      } else {
+        // delete file
+        fs.unlinkSync(curPath);
+      }
+    });
+    fs.rmdirSync(path);
+  }
+};
+
+app.listen(config.get("port"), async () => {
+  winston.info(`dicom-viewer webserver running on port: ${config.get("port")}`);
+  await storage.init();
 });

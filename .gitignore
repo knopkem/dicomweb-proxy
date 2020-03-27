@@ -1,5 +1,5 @@
 *.dcm
-
+.node-persist
 
 # Logs
 logs
