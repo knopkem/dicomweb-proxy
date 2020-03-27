@@ -66,7 +66,7 @@ app.get("/rs/studies", (req, res) => {
 
   let tags = [];
   if (includes) {
-    let tags = includes.split(",");
+    tags = includes.split(",");
   }
 
   // fix for OHIF viewer assuming a lot of tags
@@ -139,7 +139,7 @@ app.get("/viewer/rs/studies/:studyInstanceUid/series", (req, res) => {
 
   let tags = [];
   if (includes) {
-    let tags = includes.split(",");
+    tags = includes.split(",");
   }
 
   // fix for OHIF viewer assuming a lot of tags
@@ -209,7 +209,7 @@ app.get(
 
     let tags = [];
     if (includes) {
-      let tags = includes.split(",");
+      tags = includes.split(",");
     }
 
     // fix for OHIF viewer assuming a lot of tags
@@ -286,17 +286,21 @@ const fetchData = async (studyUid, seriesUid) => {
   // set source and target from config
   j.source = config.get("source");
   j.target = config.get("target");
-  j.storagePath = config.get("source");
+  j.storagePath = config.get("storagePath");
 
   const prom = new Promise((resolve, reject) => {
     try {
       dimse.getScu(JSON.stringify(j), result => {
         try {
-          const j = JSON.parse(result);
-          if (j.code === 0) {
+          const json = JSON.parse(result);
+          if (json.code === 0) {
             storage.getItem(studyUid).then(item => {
               if (!item) {
-                storage.setItem(studyUid, addMinutes(new Date(), 1));
+                winston.info("stored", j.storagePath + "/" + studyUid);
+                const cacheTime = config.get("keepCacheInMinutes");
+                if (cacheTime >= 0) {
+                  storage.setItem(studyUid, addMinutes(new Date(), cacheTime));
+                }
               }
             });
             resolve(result);
@@ -327,12 +331,36 @@ const waitOrFetchData = (studyUid, seriesUid) => {
   return fetchData(studyUid, seriesUid);
 };
 
+const clearCache = async (storagePath, currentUid) => {
+  const currentDate = new Date();
+  storage.forEach(item => {
+    const dt = new Date(item.value);
+    const directory = storagePath + "/" + item.key;
+    if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
+      fs.rmdir(
+        directory,
+        {
+          recursive: true
+        },
+        error => {
+          if (error) {
+            winston.error(error);
+          } else {
+            winston.info("deleted", directory);
+            storage.rm(item.key); // not nice but seems to work
+          }
+        }
+      );
+    }
+  });
+}
+
 app.get("/viewer/wadouri", async (req, res) => {
   const studyUid = req.query.studyUID;
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
-  const directory = config.get("storagePath") + "/" + studyUid;
-  const pathname = directory + "/" + imageUid + ".dcm";
+  const storagePath = config.get("storagePath");
+  const pathname = storagePath + "/" + studyUid + "/" + imageUid + ".dcm";
 
   try {
     await fileExists(pathname);
@@ -352,34 +380,10 @@ app.get("/viewer/wadouri", async (req, res) => {
   });
 
   // clear data
-  const currentDate = new Date();
-  await storage.forEach(item => {
-    const dt = new Date(item.value);
-    if (dt.getTime() < currentDate.getTime()) {
-      deleteFolderRecursive(directory);
-      winston.info("deleted", directory);
-      storage.rm(item.key); // not nice but seems to work
-    }
-  });
+  clearCache(storagePath, studyUid);
 });
 
-const deleteFolderRecursive = path => {
-  if (fs.existsSync(path)) {
-    fs.readdirSync(path).forEach(function(file, index) {
-      var curPath = path + "/" + file;
-      if (fs.lstatSync(curPath).isDirectory()) {
-        // recurse
-        deleteFolderRecursive(curPath);
-      } else {
-        // delete file
-        fs.unlinkSync(curPath);
-      }
-    });
-    fs.rmdirSync(path);
-  }
-};
-
 app.listen(config.get("port"), async () => {
-  winston.info(`dicom-viewer webserver running on port: ${config.get("port")}`);
+  winston.info(`webserver running on port: ${config.get("port")}`);
   await storage.init();
 });
