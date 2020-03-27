@@ -30,6 +30,9 @@ config.storagePath = "./data";
 config.keepCacheInMinutes = 60;
 
 // do not issue c-find if search contains less characters
-config.qidoMinChars = 0;
+config.qidoMinChars = 2;
+
+// auto append * for patient name query
+config.qidoAppendWildcard = true;
 
 module.exports = config;

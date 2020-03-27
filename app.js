@@ -46,13 +46,13 @@ process.on("uncaughtException", err => {
   winston.error(err.stack);
 });
 
-app.get("/rs/studies", (req, res) => {
+const doFind = (queryLevel, query, defaults) => {
   // add query retrieve level
   const j = {
     tags: [
       {
         key: "00080052",
-        value: "STUDY"
+        value: queryLevel
       }
     ]
   };
@@ -62,193 +62,118 @@ app.get("/rs/studies", (req, res) => {
   j.target = config.get("target");
 
   // parse all include fields
-  const includes = req.query.includefield;
+  const includes = query.includefield;
 
   let tags = [];
   if (includes) {
     tags = includes.split(",");
   }
-
-  // fix for OHIF viewer assuming a lot of tags
-  tags.push("00080005");
-  tags.push("00080020");
-  tags.push("00080030");
-  tags.push("00080050");
-  tags.push("00080054");
-  tags.push("00080056");
-  tags.push("00080061");
-  tags.push("00080090");
-  tags.push("00081190");
-  tags.push("00100010");
-  tags.push("00100020");
-  tags.push("00100030");
-  tags.push("00100040");
-  tags.push("0020000D");
-  tags.push("00200010");
-  tags.push("00201206");
-  tags.push("00201208");
+  tags.push(...defaults);
 
   // add parsed tags
   tags.forEach(element => {
-    // todo check if we need to convert to tag first
-    j.tags.push({ key: element, value: "" });
+    const tagName = findDicomName(element) || element;
+    j.tags.push({ key: tagName, value: "" });
   });
 
   // add search params
-  for (const propName in req.query) {
-    if (req.query.hasOwnProperty(propName)) {
+  for (const propName in query) {
+    if (query.hasOwnProperty(propName)) {
       const tag = findDicomName(propName);
       if (tag) {
-        j.tags.push({ key: tag, value: req.query[propName] });
+        let v = query[propName];
+        // patient name check
+        if (tag === "00100010") {
+          // min chars
+          if (config.get("qidoMinChars") > v.length) {
+            return [];
+          }
+          // auto append wildcard
+          if (config.get("qidoAppendWildcard")) {
+            v += "*";
+          }
+        }
+        j.tags.push({ key: tag, value: v });
       }
     }
   }
 
   // run find scu and return json response
-  dimse.findScu(JSON.stringify(j), result => {
-    try {
-      const j = JSON.parse(result);
-      if (j.code === 0) {
-        res.json(JSON.parse(j.container));
-      }
-    } catch (error) {
-      winston.error(error);
-      winston.inso(result);
-      res.json([]);
-    }
-  });
-});
-
-app.get("/viewer/rs/studies/:studyInstanceUid/series", (req, res) => {
-  // add query retrieve level
-  const j = {
-    tags: [
-      {
-        key: "00080052",
-        value: "SERIES"
-      }
-    ]
-  };
-
-  // set source and target from config
-  j.source = config.get("source");
-  j.target = config.get("target");
-
-  // parse all include fields
-  const includes = req.query.includefield;
-
-  let tags = [];
-  if (includes) {
-    tags = includes.split(",");
-  }
-
-  // fix for OHIF viewer assuming a lot of tags
-  tags.push("00080005");
-  tags.push("00080054");
-  tags.push("00080056");
-  tags.push("00080060");
-  tags.push("0008103E");
-  tags.push("00081190");
-  tags.push("0020000E");
-  tags.push("00200011");
-  tags.push("00201209");
-
-  // add parsed tags
-  tags.forEach(element => {
-    // todo check if we need to convert to tag first
-    j.tags.push({ key: element, value: "" });
-  });
-
-  // add search params
-  for (const propName in req.query) {
-    if (req.query.hasOwnProperty(propName)) {
-      const tag = findDicomName(propName);
-      if (tag) {
-        j.tags.push({ key: tag, value: req.query[propName] });
-      }
-    }
-  }
-
-  // add study uid
-  j.tags.push({ key: "0020000D", value: req.params.studyInstanceUid });
-
-  // run find scu and return json response
-  dimse.findScu(JSON.stringify(j), result => {
-    try {
-      const j = JSON.parse(result);
-      if (j.code === 0) {
-        res.json(JSON.parse(j.container));
-      }
-    } catch (error) {
-      winston.error(error);
-      winston.info(result);
-      res.json([]);
-    }
-  });
-});
-
-app.get(
-  "/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata",
-  (req, res) => {
-    // add query retrieve level
-    const j = {
-      tags: [
-        {
-          key: "00080052",
-          value: "IMAGE"
-        }
-      ]
-    };
-
-    // set source and target from config
-    j.source = config.get("source");
-    j.target = config.get("target");
-
-    // parse all include fields
-    const includes = req.query.includefield;
-
-    let tags = [];
-    if (includes) {
-      tags = includes.split(",");
-    }
-
-    // fix for OHIF viewer assuming a lot of tags
-    tags.push("00080016");
-    tags.push("00080018");
-
-    // add parsed tags
-    tags.forEach(element => {
-      // todo check if we need to convert to tag first
-      j.tags.push({ key: element, value: "" });
-    });
-
-    // add search params
-    for (const propName in req.query) {
-      if (req.query.hasOwnProperty(propName)) {
-        const tag = findDicomName(propName);
-        if (tag) {
-          j.tags.push({ key: tag, value: req.query[propName] });
-        }
-      }
-    }
-
-    // add study and series uid
-    j.tags.push({ key: "0020000D", value: req.params.studyInstanceUid });
-    j.tags.push({ key: "0020000E", value: req.params.seriesInstanceUid });
-
-    // run find scu and return json response
+  return new Promise((resolve, reject) => {
     dimse.findScu(JSON.stringify(j), result => {
       try {
         const j = JSON.parse(result);
         if (j.code === 0) {
-          res.json(JSON.parse(j.container));
+          resolve(JSON.parse(j.container));
         }
       } catch (error) {
         winston.error(error);
-        winston.info(result);
-        res.json([]);
+        winston.error(result);
+        resolve([]);
       }
     });
+  });
+};
+
+app.get("/rs/studies", async (req, res) => {
+  // fix for OHIF viewer assuming a lot of tags
+  const tags = [
+    "00080005",
+    "00080020",
+    "00080030",
+    "00080050",
+    "00080054",
+    "00080056",
+    "00080061",
+    "00080090",
+    "00081190",
+    "00100010",
+    "00100020",
+    "00100030",
+    "00100040",
+    "0020000D",
+    "00200010",
+    "00201206",
+    "00201208"
+  ];
+
+  const json = await doFind("STUDY", req.query, tags);
+  res.json(json);
+});
+
+app.get("/viewer/rs/studies/:studyInstanceUid/series", async (req, res) => {
+  // fix for OHIF viewer assuming a lot of tags
+  const tags = [
+    "00080005",
+    "00080054",
+    "00080056",
+    "00080060",
+    "0008103E",
+    "00081190",
+    "0020000E",
+    "00200011",
+    "00201209"
+  ];
+
+  let query = req.query;
+  query["StudyInstanceUID"] = req.params.studyInstanceUid;
+
+  const json = await doFind("SERIES", query, tags);
+  res.json(json);
+});
+
+app.get(
+  "/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata",
+  async (req, res) => {
+    // fix for OHIF viewer assuming a lot of tags
+    const tags = ["00080016", "00080018"];
+
+    let query = req.query;
+    query["StudyInstanceUID"] = req.params.studyInstanceUid;
+    query["SeriesInstanceUID"] = req.params.seriesInstanceUid;
+
+    const json = await doFind("IMAGE", query, tags);
+    res.json(json);
   }
 );
 
@@ -353,7 +278,7 @@ const clearCache = async (storagePath, currentUid) => {
       );
     }
   });
-}
+};
 
 app.get("/viewer/wadouri", async (req, res) => {
   const studyUid = req.query.studyUID;
