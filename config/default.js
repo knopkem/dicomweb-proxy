@@ -1,14 +1,5 @@
 const config = {};
 
-// log directory
-config.logDir = "./logs";
-
-// webserver port
-config.port = 5000;
-
-// target PACS supports C-Get (if flase use C-Move instead)
-config.useCget = true;
-
 // our SCP (only used if useCget is false
 config.source = {
   aet: "IMEBRA",
@@ -23,14 +14,23 @@ config.target = {
   port: "5678"
 };
 
+// log directory
+config.logDir = "./logs";
+
 // cache directory
 config.storagePath = "./data";
+
+// webserver port
+config.port = 5000;
+
+// target PACS supports C-Get (if flase use C-Move instead)
+config.useCget = true;
 
 // how long before deleting cache, -1 for eternity
 config.keepCacheInMinutes = 60;
 
 // do not issue c-find if search contains less characters
-config.qidoMinChars = 2;
+config.qidoMinChars = 0;
 
 // auto append * for patient name query
 config.qidoAppendWildcard = true;

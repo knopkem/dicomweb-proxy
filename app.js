@@ -189,6 +189,7 @@ const fileExists = pathname => {
   });
 };
 
+// request data from PACS via c-get or c-move
 const fetchData = async (studyUid, seriesUid) => {
   // add query retrieve level and fetch whole study
   const j = {
@@ -213,9 +214,11 @@ const fetchData = async (studyUid, seriesUid) => {
   j.target = config.get("target");
   j.storagePath = config.get("storagePath");
 
+  const scu = config.get("useCget") ? dimse.getScu : dimse.moveScu;
+
   const prom = new Promise((resolve, reject) => {
     try {
-      dimse.getScu(JSON.stringify(j), result => {
+      scu(JSON.stringify(j), result => {
         try {
           const json = JSON.parse(result);
           if (json.code === 0) {
@@ -229,9 +232,11 @@ const fetchData = async (studyUid, seriesUid) => {
               }
             });
             resolve(result);
+          } else {
+            winston.info(JSON.parse(result));
           }
         } catch (error) {
-          reject(error);
+          reject(error, result);
         }
         lock.delete(seriesUid);
       });
@@ -244,10 +249,12 @@ const fetchData = async (studyUid, seriesUid) => {
   return prom;
 };
 
+// helper to add minutes to date object
 const addMinutes = (date, minutes) => {
   return new Date(date.getTime() + minutes * 60000);
 };
 
+// fetch and wait
 const waitOrFetchData = (studyUid, seriesUid) => {
   // check if already locked and return promise
   if (lock.has(seriesUid)) {
@@ -256,6 +263,7 @@ const waitOrFetchData = (studyUid, seriesUid) => {
   return fetchData(studyUid, seriesUid);
 };
 
+// remove cached data if outdated
 const clearCache = async (storagePath, currentUid) => {
   const currentDate = new Date();
   storage.forEach(item => {
@@ -311,4 +319,19 @@ app.get("/viewer/wadouri", async (req, res) => {
 app.listen(config.get("port"), async () => {
   winston.info(`webserver running on port: ${config.get("port")}`);
   await storage.init();
+
+  // if not using c-get, start our scp
+  if (!config.get("useCget")) {
+    let j = {};
+    j.source = config.get("source");
+    j.storagePath = config.get("storagePath");
+
+    dimse.startScp(JSON.stringify(j), result => {
+      try {
+        winston.info(JSON.parse(result));
+      } catch (error) {
+        winston.error(error, result);
+      }
+    });
+  }
 });
