@@ -221,7 +221,7 @@ const fetchData = async (studyUid, seriesUid) => {
       scu(JSON.stringify(j), result => {
         try {
           const json = JSON.parse(result);
-          if (json.code === 0) {
+          if (json.code === 0 || json.code === 2) {
             storage.getItem(studyUid).then(item => {
               if (!item) {
                 winston.info("stored", j.storagePath + "/" + studyUid);
