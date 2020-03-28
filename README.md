@@ -11,8 +11,8 @@ A proxy to translate between dicomweb and traditional dicom dimse services
 ```npm i dicomweb-proxy```
 
 * update config file:
-** in config directory: modify default.js or create development.js (overrides default) 
-** change to your desired target AET
+in config directory: modify default.js or create development.js (overrides default) 
+change to your desired target AET
 
 ```
 config.target = {
