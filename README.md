@@ -7,8 +7,8 @@ A proxy to translate between dicomweb and traditional dicom dimse services
 * A nodejs tool to easily connect a DICOMWEB capable DICOM viewer to a legacy PACS that only knows DIMSE services. Comes with preinstalled OHIF DICOM Web Viewer.
 
 ## How to use
-* clone repository or intall via 
-```npm i dicomweb-proxy```
+* clone repository and install dependencies 
+```npm install```
 
 * update config file:
 in config directory: modify default.js or create development.js (overrides default) 
