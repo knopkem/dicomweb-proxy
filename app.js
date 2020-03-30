@@ -6,6 +6,7 @@ const shell = require("shelljs");
 const dict = require("dicom-data-dictionary");
 const fs = require("fs");
 const storage = require("node-persist");
+const path = require("path");
 
 const lock = new Map();
 
@@ -98,13 +99,15 @@ const doFind = (queryLevel, query, defaults) => {
     }
   }
 
+  const offset = query.offset ? query.offset : 0;
+
   // run find scu and return json response
   return new Promise((resolve, reject) => {
     dimse.findScu(JSON.stringify(j), result => {
       try {
         const j = JSON.parse(result);
         if (j.code === 0) {
-          resolve(JSON.parse(j.container));
+          resolve(JSON.parse(j.container).slice(offset));
         }
       } catch (error) {
         winston.error(error);
@@ -224,7 +227,7 @@ const fetchData = async (studyUid, seriesUid) => {
           if (json.code === 0 || json.code === 2) {
             storage.getItem(studyUid).then(item => {
               if (!item) {
-                winston.info("stored", j.storagePath + "/" + studyUid);
+                winston.info("stored", path.join(j.storagePath, studyUid));
                 const cacheTime = config.get("keepCacheInMinutes");
                 if (cacheTime >= 0) {
                   storage.setItem(studyUid, addMinutes(new Date(), cacheTime));
@@ -268,7 +271,7 @@ const clearCache = async (storagePath, currentUid) => {
   const currentDate = new Date();
   storage.forEach(item => {
     const dt = new Date(item.value);
-    const directory = storagePath + "/" + item.key;
+    const directory = path.join(storagePath, item.key);
     if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
       fs.rmdir(
         directory,
@@ -293,7 +296,7 @@ app.get("/viewer/wadouri", async (req, res) => {
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
   const storagePath = config.get("storagePath");
-  const pathname = storagePath + "/" + studyUid + "/" + imageUid + ".dcm";
+  const pathname = path.join(storagePath, studyUid, imageUid) + ".dcm";
 
   try {
     await fileExists(pathname);
