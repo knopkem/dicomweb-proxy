@@ -1,6 +1,6 @@
 {
   "name": "dicomweb-proxy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A proxy to translate between dicomweb and dimse",
   "main": "app.js",
   "scripts": {
@@ -18,6 +18,9 @@
   ],
   "author": "Michael Knopke",
   "license": "GPL-3.0-or-later",
+  "bin": {
+    "dicomweb-proxy": "bin/dicomweb-proxy"
+  },
   "bugs": {
     "url": "https://github.com/knopkem/dicomweb-proxy/issues"
   },

@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+"use strict";
+
+var log = require("npmlog");
+var _ = require("lodash");
+var util = require("util");
+var version = require("../package").version;
+var logLevels = ["silly", "verbose", "info", "http", "warn", "error"];
+
+var npmConfigData = require("rc")("npm");
+
+console.log(process.argv);
+
+var yargs = require("yargs")
+    .usage("Dicomweb-Proxy " + version + "\n\nUsage: $0 [<command>] [options]")
+    .version(function () {
+        return version;
+    })
+    .command("run", "Run the Dicomweb-Proxy")
+    .command("config", "Configure Dicomweb-Proxy")
+    .options({
+        h: {
+            alias: "help",
+            demand: false,
+            describe: "show this screen",
+            type: "boolean"
+        }
+    });
+var argv = yargs.argv;
+
+// If help, then print and exit:
+
+if (argv.h) {
+    console.info(yargs.help());
+    process.exit(0);
+}
+
+// Setup log level:
+
+if (argv.l && _.includes(logLevels, argv.l)) {
+    log.level = argv.l;
+    log.resume();
+}
+
+log.silly("CON", "argv:");
+log.silly("CON", util.inspect(argv));
+
+log.verbose("CON", "Parsing arguments");
+
+// Extract custom cMake options
+var customOptions = {};
+_.keys(argv).forEach(function (key) {
+    if (argv[key] && _.startsWith(key, "CD")) {
+        customOptions[key.substr(2)] = argv[key];
+    }
+});
+
+var options = {
+  
+};
+
+log.verbose("CON", "options:");
+log.verbose("CON", util.inspect(options));
+
+var command = _.first(argv._) || "build";
+
+log.verbose("CON", "Running command: " + command);
+
+function ifCommand(c, f) {
+    if (c === command) {
+        f();
+        return true;
+    }
+    return false;
+}
+
+function exitOnError(promise) {
+    promise.catch(function () {
+        process.exit(1);
+    });
+}
+
+function run() {
+    exitOnError(node ../app.js);
+}
+function configure() {
+    exitOnError(buildSystem.configure());
+}
+
+var done = ifCommand("run", run);
+done = done || ifCommand("configure", configure);
+
+if (!done) {
+    if (command) {
+        log.error("COM", "Unknown command: " + command);
+        process.exit(1);
+    }
+    else {
+        build();
+    }
+}
