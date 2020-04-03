@@ -50,10 +50,10 @@ config.target = {
 ```
 
 * in case your PACS does not support C-GET, switch to C-Move:
-config.useCget = false;
+```config.useCget = false;```
 
 * update port
-config.webserverPort = 5000;
+```config.webserverPort = 5000;```
 
 * open webbrowser and start viewing
 e.g. ```http://localhost:5000```
