@@ -2,9 +2,9 @@ const config = {};
 
 // our SCP (only used if useCget is false
 config.source = {
-  aet: "IMEBRA",
+  aet: "DICOMWEB_PROXY",
   ip: "127.0.0.1",
-  port: "9999"
+  port: "8888"
 };
 
 // our target PACS
@@ -21,7 +21,7 @@ config.logDir = "./logs";
 config.storagePath = "./data";
 
 // webserver port
-config.port = 5000;
+config.webserverPort = 5000;
 
 // target PACS supports C-Get (if flase use C-Move instead)
 config.useCget = true;

@@ -1,5 +1,7 @@
 *.dcm
 .node-persist
+config/development.js
+config/production.js
 
 # Logs
 logs

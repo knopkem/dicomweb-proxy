@@ -319,8 +319,9 @@ app.get("/viewer/wadouri", async (req, res) => {
   clearCache(storagePath, studyUid);
 });
 
-app.listen(config.get("port"), async () => {
-  winston.info(`webserver running on port: ${config.get("port")}`);
+const port = config.get("webserverPort");
+app.listen(port, async () => {
+  winston.info(`webserver running on port: ${port}`);
   await storage.init();
 
   // if not using c-get, start our scp

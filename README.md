@@ -6,13 +6,40 @@ A proxy to translate between dicomweb and traditional dicom dimse services
 ## Description
 * A nodejs tool to easily connect a DICOMWEB capable DICOM viewer to a legacy PACS that only knows DIMSE services. Comes with preinstalled OHIF DICOM Web Viewer.
 
-## How to use
+## Setup Instructions - npm
+
+* install in empty directory
+```npm install dicomweb-proxy```
+
+* update config file located in:
+```./node_modules/dicomweb-proxy/config```
+
+* run:
+```npx dicomweb-proxy```
+
+## Setup Instructions - source
+
 * clone repository and install dependencies 
 ```npm install```
 
-* update config file:
-in config directory: modify default.js or create development.js (overrides default) 
-change to your desired target AET
+* update config file located in:
+```./config```
+
+* run:
+```npm start```
+
+# What to modify
+* (optional) change source port or AET 
+
+```
+config.source = {
+  aet: "SOURCE_AET",
+  ip: "SOURCE_IP",
+  port: "SOURCE_PORT"
+};
+```
+
+* change target to your PACS
 
 ```
 config.target = {
@@ -22,8 +49,11 @@ config.target = {
 };
 ```
 
-* run server:
-```npm start```
+* in case your PACS does not support C-GET, switch to C-Move:
+config.useCget = false;
+
+* update port
+config.webserverPort = 5000;
 
 * open webbrowser and start viewing
 e.g. ```http://localhost:5000```
