@@ -20,11 +20,11 @@ const dailyRotateFile = new winstonLib.transports.DailyRotateFile({
   datePattern: "YYYY-MM-DD-HH",
   zippedArchive: true,
   maxSize: "20m",
-  maxFiles: "14d"
+  maxFiles: "14d",
 });
 
 const winston = new winstonLib.Logger({
-  transports: [dailyRotateFile]
+  transports: [dailyRotateFile],
 });
 
 winston.add(winstonLib.transports.Console);
@@ -42,7 +42,7 @@ function findDicomName(name) {
 }
 
 // prevents nodejs from exiting
-process.on("uncaughtException", err => {
+process.on("uncaughtException", (err) => {
   winston.info("uncaught exception received");
   winston.error(err.stack);
 });
@@ -53,9 +53,9 @@ const doFind = (queryLevel, query, defaults) => {
     tags: [
       {
         key: "00080052",
-        value: queryLevel
-      }
-    ]
+        value: queryLevel,
+      },
+    ],
   };
 
   // set source and target from config
@@ -72,7 +72,7 @@ const doFind = (queryLevel, query, defaults) => {
   tags.push(...defaults);
 
   // add parsed tags
-  tags.forEach(element => {
+  tags.forEach((element) => {
     const tagName = findDicomName(element) || element;
     j.tags.push({ key: tagName, value: "" });
   });
@@ -103,7 +103,7 @@ const doFind = (queryLevel, query, defaults) => {
 
   // run find scu and return json response
   return new Promise((resolve, reject) => {
-    dimse.findScu(JSON.stringify(j), result => {
+    dimse.findScu(JSON.stringify(j), (result) => {
       try {
         const j = JSON.parse(result);
         if (j.code === 0) {
@@ -137,7 +137,7 @@ app.get("/rs/studies", async (req, res) => {
     "0020000D",
     "00200010",
     "00201206",
-    "00201208"
+    "00201208",
   ];
 
   const json = await doFind("STUDY", req.query, tags);
@@ -155,7 +155,7 @@ app.get("/viewer/rs/studies/:studyInstanceUid/series", async (req, res) => {
     "00081190",
     "0020000E",
     "00200011",
-    "00201209"
+    "00201209",
   ];
 
   let query = req.query;
@@ -180,9 +180,9 @@ app.get(
   }
 );
 
-const fileExists = pathname => {
+const fileExists = (pathname) => {
   return new Promise((resolve, reject) => {
-    fs.access(pathname, err => {
+    fs.access(pathname, (err) => {
       if (err) {
         reject(err);
       } else {
@@ -199,17 +199,17 @@ const fetchData = async (studyUid, seriesUid) => {
     tags: [
       {
         key: "00080052",
-        value: "SERIES"
+        value: "SERIES",
       },
       {
         key: "0020000D",
-        value: studyUid
+        value: studyUid,
       },
       {
         key: "0020000E",
-        value: seriesUid
-      }
-    ]
+        value: seriesUid,
+      },
+    ],
   };
 
   // set source and target from config
@@ -221,11 +221,11 @@ const fetchData = async (studyUid, seriesUid) => {
 
   const prom = new Promise((resolve, reject) => {
     try {
-      scu(JSON.stringify(j), result => {
+      scu(JSON.stringify(j), (result) => {
         try {
           const json = JSON.parse(result);
           if (json.code === 0 || json.code === 2) {
-            storage.getItem(studyUid).then(item => {
+            storage.getItem(studyUid).then((item) => {
               if (!item) {
                 winston.info("stored", path.join(j.storagePath, studyUid));
                 const cacheTime = config.get("keepCacheInMinutes");
@@ -269,16 +269,16 @@ const waitOrFetchData = (studyUid, seriesUid) => {
 // remove cached data if outdated
 const clearCache = async (storagePath, currentUid) => {
   const currentDate = new Date();
-  storage.forEach(item => {
+  storage.forEach((item) => {
     const dt = new Date(item.value);
     const directory = path.join(storagePath, item.key);
     if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
       fs.rmdir(
         directory,
         {
-          recursive: true
+          recursive: true,
         },
-        error => {
+        (error) => {
           if (error) {
             winston.error(error);
           } else {
@@ -319,6 +319,35 @@ app.get("/viewer/wadouri", async (req, res) => {
   clearCache(storagePath, studyUid);
 });
 
+const startScp = () => {
+  let j = {};
+  j.source = config.get("source");
+  j.storagePath = config.get("storagePath");
+
+  dimse.startScp(JSON.stringify(j), result => {
+    try {
+      winston.info(JSON.parse(result));
+    } catch (error) {
+      winston.error(error, result);
+    }
+  });
+};
+
+const sendEcho = () => {
+  let j = {};
+  j.source = config.get("source");
+  j.target = config.get("target");
+
+  winston.info(`sending C-ECHO to target: ${j.target.aet}`);
+  dimse.echoScu(JSON.stringify(j), result => {
+    try {
+      winston.info(JSON.parse(result));
+    } catch (error) {
+      winston.error(error, result);
+    }
+  });
+};
+
 const port = config.get("webserverPort");
 app.listen(port, async () => {
   winston.info(`webserver running on port: ${port}`);
@@ -326,16 +355,8 @@ app.listen(port, async () => {
 
   // if not using c-get, start our scp
   if (!config.get("useCget")) {
-    let j = {};
-    j.source = config.get("source");
-    j.storagePath = config.get("storagePath");
-
-    dimse.startScp(JSON.stringify(j), result => {
-      try {
-        winston.info(JSON.parse(result));
-      } catch (error) {
-        winston.error(error, result);
-      }
-    });
+    startScp();
   }
+
+  sendEcho();
 });
