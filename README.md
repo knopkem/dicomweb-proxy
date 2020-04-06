@@ -63,7 +63,7 @@ e.g. ```http://localhost:5000```
 ```config.useKeycloakAuth```
 * this requires a keycloak.json file in the root directory
 * users will be redirected to keycloak server and every route is protected
-* see https://https://codeburst.io/keycloak-and-express-7c71693d507a
+* see https://codeburst.io/keycloak-and-express-7c71693d507a
 
 ## License
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fknopkem%2Fdicomweb-proxy.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fknopkem%2Fdicomweb-proxy?ref=badge_large)
