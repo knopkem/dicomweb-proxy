@@ -1,6 +1,6 @@
 window.config = {
   //default: '/',
-  routerBasename: '/',
+  routerBasename: '/viewer',
   whiteLabelling: {},
   extensions: [],
   showStudyList: true,
