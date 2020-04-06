@@ -28,7 +28,7 @@ A proxy to translate between dicomweb and traditional dicom dimse services
 * run:
 ```npm start```
 
-# What to modify
+## What to modify
 * (optional) change source port or AET 
 
 ```

@@ -1,6 +1,6 @@
 {
   "name": "dicomweb-proxy",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A proxy to translate between dicomweb and dimse",
   "main": "app.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "DICOM"
   ],
   "author": "Michael Knopke",
-  "license": "GPL-3.0-or-later",
+  "license": "ISC",
   "bin": {
     "dicomweb-proxy": "bin/dicomweb-proxy"
   },
@@ -29,7 +29,7 @@
     "body-parser": "^1.19.0",
     "config": "^3.2.4",
     "dicom-data-dictionary": "^0.3.1",
-    "dicom-dimse-native": "^0.1.5",
+    "dicom-dimse-native": "^1.0.0",
     "express": "^4.17.1",
     "express-session": "^1.17.0",
     "keycloak-connect": "^9.0.2",
