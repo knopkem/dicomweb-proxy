@@ -131,7 +131,7 @@ const utils = {
       try {
         logger.info(JSON.parse(result));
       } catch (error) {
-        logger.error(error, result);
+        logger.error(result);
       }
     });
   },
@@ -234,7 +234,7 @@ const utils = {
       }
     }
 
-    const offset = query.offset ? query.offset : 0;
+    const offset = query.offset ? parseInt(query.offset) : 0;
 
     // run find scu and return json response
     return new Promise((resolve, reject) => {
@@ -242,7 +242,12 @@ const utils = {
         try {
           const j = JSON.parse(result);
           if (j.code === 0) {
-            resolve(JSON.parse(j.container).slice(offset));
+            const container = JSON.parse(j.container);
+            if (container) {
+              resolve(container.slice(offset));
+            } else {
+              resolve([]);
+            }
           }
         } catch (error) {
           logger.error(error);
