@@ -44,8 +44,10 @@ app.use(express.static("public"));
 
 // prevents nodejs from exiting
 process.on("uncaughtException", err => {
-  logger.info("uncaught exception received");
+  logger.info("uncaught exception received:");
+  logger.info("------------------------------------------")
   logger.error(err.stack);
+  logger.info("------------------------------------------")
 });
 
 //------------------------------------------------------------------
@@ -144,20 +146,22 @@ app.get("/viewer/viewer/wadouri", middle, async (req, res) => {
   } catch (error) {
     await utils.waitOrFetchData(studyUid, seriesUid);
   }
+  // if the file is found, set Content-type and send data
+  res.setHeader("Content-type", "application/dicom");
 
   // read file from file system
   fs.readFile(pathname, (err, data) => {
     if (err) {
+      const msg = `Error getting the file: ${err}.`;
+      logger.error(msg);
       res.statusCode = 500;
-      res.end(`Error getting the file: ${err}.`);
+      res.end(msg);
     }
-    // if the file is found, set Content-type and send data
-    res.setHeader("Content-type", "application/dicom");
     res.end(data);
   });
 
   // clear data
-  utils.clearCache(storagePath, studyUid);
+  utils.clearCache(storagePath, studyUid, false);
 });
 
 //------------------------------------------------------------------
@@ -165,7 +169,7 @@ app.get("/viewer/viewer/wadouri", middle, async (req, res) => {
 const port = config.get("webserverPort");
 app.listen(port, async () => {
   logger.info(`webserver running on port: ${port}`);
-  utils.init();
+  await utils.init();
 
   // if not using c-get, start our scp
   if (!config.get("useCget")) {
@@ -173,6 +177,12 @@ app.listen(port, async () => {
   }
 
   utils.sendEcho();
+
+  // clear data
+  if (config.get("clearCacheOnStartup")) {
+    const storagePath = config.get("storagePath");
+    utils.clearCache(storagePath, "", true);
+  }
 });
 
 //------------------------------------------------------------------

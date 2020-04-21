@@ -32,6 +32,9 @@ config.useCget = true;
 // how long before deleting cache, -1 for eternity
 config.keepCacheInMinutes = 60;
 
+// remove all cached files when starting the server 
+config.clearCacheOnStartup = true;
+
 // do not issue c-find if search contains less characters
 config.qidoMinChars = 0;
 

@@ -148,12 +148,12 @@ const utils = {
   },
 
   // remove cached data if outdated
-  clearCache: async (storagePath, currentUid) => {
+  clearCache: async (storagePath, currentUid, clearAll) => {
     const currentDate = new Date();
     storage.forEach(item => {
       const dt = new Date(item.value);
       const directory = path.join(storagePath, item.key);
-      if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
+      if ((dt.getTime() < currentDate.getTime() && item.key !== currentUid) || clearAll) {
         fs.rmdir(
           directory,
           {
