@@ -1,5 +1,10 @@
 module.exports = { 
-    "extends": "plugin:prettier/recommended",
+    "extends": [
+        "airbnb",
+        "prettier",
+        "prettier/react"
+    ]
+    ,
      "parserOptions": {
         "ecmaVersion": 2017
     },

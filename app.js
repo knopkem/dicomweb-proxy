@@ -7,11 +7,12 @@ const Keycloak = require("keycloak-connect");
 const session = require("express-session");
 const { v4: uuidv4 } = require("uuid");
 const utils = require("./utils.js");
+
 const app = express();
 const logger = utils.getLogger();
 
 // unprotected middleware passing
-let middle = function(req, res, next) {
+let middle = function middle(req, res, next) {
   next();
 };
 
@@ -20,13 +21,13 @@ if (config.get("useKeycloakAuth")) {
   const memoryStore = new session.MemoryStore();
   const keycloak = new Keycloak({ store: memoryStore });
 
-  //session
+  // session
   app.use(
     session({
       secret: uuidv4(),
       resave: false,
       saveUninitialized: true,
-      store: memoryStore
+      store: memoryStore,
     })
   );
 
@@ -51,7 +52,7 @@ process.on("uncaughtException", err => {
 
 app.get("/", middle, async (req, res) => {
   res.writeHead(301, {
-    Location: "http://" + req.headers["host"] + "/viewer/",
+    Location: `http://${req.headers.host}/viewer/`,
   });
   return res.end();
 });
@@ -77,7 +78,7 @@ app.get("/viewer/rs/studies", middle, async (req, res) => {
     "0020000D",
     "00200010",
     "00201206",
-    "00201208"
+    "00201208",
   ];
 
   const json = await utils.doFind("STUDY", req.query, tags);
@@ -100,11 +101,11 @@ app.get(
       "00081190",
       "0020000E",
       "00200011",
-      "00201209"
+      "00201209",
     ];
 
-    let query = req.query;
-    query["StudyInstanceUID"] = req.params.studyInstanceUid;
+    const { query } = req;
+    query.StudyInstanceUID = req.params.studyInstanceUid;
 
     const json = await utils.doFind("SERIES", query, tags);
     res.json(json);
@@ -120,9 +121,9 @@ app.get(
     // fix for OHIF viewer assuming a lot of tags
     const tags = ["00080016", "00080018"];
 
-    let query = req.query;
-    query["StudyInstanceUID"] = req.params.studyInstanceUid;
-    query["SeriesInstanceUID"] = req.params.seriesInstanceUid;
+    const { query } = req;
+    query.StudyInstanceUID = req.params.studyInstanceUid;
+    query.SeriesInstanceUID = req.params.seriesInstanceUid;
 
     const json = await utils.doFind("IMAGE", query, tags);
     res.json(json);
@@ -136,7 +137,7 @@ app.get("/viewer/viewer/wadouri", middle, async (req, res) => {
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
   const storagePath = config.get("storagePath");
-  const pathname = path.join(storagePath, studyUid, imageUid) + ".dcm";
+  const pathname = `${path.join(storagePath, studyUid, imageUid)}.dcm`;
 
   try {
     await utils.fileExists(pathname);
@@ -148,7 +149,7 @@ app.get("/viewer/viewer/wadouri", middle, async (req, res) => {
   fs.readFile(pathname, (err, data) => {
     if (err) {
       res.statusCode = 500;
-      return res.end(`Error getting the file: ${err}.`);
+      res.end(`Error getting the file: ${err}.`);
     }
     // if the file is found, set Content-type and send data
     res.setHeader("Content-type", "application/dicom");

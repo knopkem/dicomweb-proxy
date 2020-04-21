@@ -24,13 +24,15 @@ const logger = new winston.Logger({
   transports: [dailyRotateFile, consoleLogger],
 });
 
-const findDicomName = (name) => {
+const findDicomName = name => {
+  // eslint-disable-next-line no-restricted-syntax
   for (const key of Object.keys(dict.standardDataElements)) {
     const value = dict.standardDataElements[key];
-    if (value.name == name) {
+    if (value.name === name) {
       return key;
     }
   }
+  return undefined;
 };
 
 // helper to add minutes to date object
@@ -67,11 +69,11 @@ const fetchData = async (studyUid, seriesUid) => {
 
   const prom = new Promise((resolve, reject) => {
     try {
-      scu(JSON.stringify(j), (result) => {
+      scu(JSON.stringify(j), result => {
         try {
           const json = JSON.parse(result);
           if (json.code === 0 || json.code === 2) {
-            storage.getItem(studyUid).then((item) => {
+            storage.getItem(studyUid).then(item => {
               if (!item) {
                 logger.info("stored", path.join(j.storagePath, studyUid));
                 const cacheTime = config.get("keepCacheInMinutes");
@@ -108,11 +110,11 @@ const utils = {
   },
 
   startScp: () => {
-    let j = {};
+    const j = {};
     j.source = config.get("source");
     j.storagePath = config.get("storagePath");
 
-    dimse.startScp(JSON.stringify(j), (result) => {
+    dimse.startScp(JSON.stringify(j), result => {
       try {
         logger.info(JSON.parse(result));
       } catch (error) {
@@ -122,12 +124,12 @@ const utils = {
   },
 
   sendEcho: () => {
-    let j = {};
+    const j = {};
     j.source = config.get("source");
     j.target = config.get("target");
 
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
-    dimse.echoScu(JSON.stringify(j), (result) => {
+    dimse.echoScu(JSON.stringify(j), result => {
       try {
         logger.info(JSON.parse(result));
       } catch (error) {
@@ -148,7 +150,7 @@ const utils = {
   // remove cached data if outdated
   clearCache: async (storagePath, currentUid) => {
     const currentDate = new Date();
-    storage.forEach((item) => {
+    storage.forEach(item => {
       const dt = new Date(item.value);
       const directory = path.join(storagePath, item.key);
       if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
@@ -157,7 +159,7 @@ const utils = {
           {
             recursive: true,
           },
-          (error) => {
+          error => {
             if (error) {
               logger.error(error);
             } else {
@@ -170,9 +172,9 @@ const utils = {
     });
   },
 
-  fileExists: (pathname) => {
+  fileExists: pathname => {
     return new Promise((resolve, reject) => {
-      fs.access(pathname, (err) => {
+      fs.access(pathname, err => {
         if (err) {
           reject(err);
         } else {
@@ -207,42 +209,45 @@ const utils = {
     tags.push(...defaults);
 
     // add parsed tags
-    tags.forEach((element) => {
+    tags.forEach(element => {
       const tagName = findDicomName(element) || element;
       j.tags.push({ key: tagName, value: "" });
     });
 
-    // add search params
-    for (const propName in query) {
-      if (query.hasOwnProperty(propName)) {
-        const tag = findDicomName(propName);
-        if (tag) {
-          let v = query[propName];
-          // patient name check
-          if (tag === "00100010") {
-            // min chars
-            if (config.get("qidoMinChars") > v.length) {
-              return [];
-            }
-            // auto append wildcard
-            if (config.get("qidoAppendWildcard")) {
-              v += "*";
-            }
+    // add search param
+    let isValidInput = false; 
+    Object.keys(query).forEach( propName => {
+      const tag = findDicomName(propName);
+      if (tag) {
+        let v = query[propName];
+        // patient name check
+        if (tag === "00100010") {
+          // check if minimum number of chars for patient name are given 
+          if (config.get("qidoMinChars") > v.length) {
+            isValidInput = true;
           }
-          j.tags.push({ key: tag, value: v });
+          // auto append wildcard
+          if (config.get("qidoAppendWildcard")) {
+            v += "*";
+          }
         }
+        j.tags.push({ key: tag, value: v });
       }
-    }
+  })
+  // return with empty results if invalid 
+  if (isValidInput) {
+    return [];
+  }
 
-    const offset = query.offset ? parseInt(query.offset) : 0;
+    const offset = query.offset ? parseInt(query.offset, 10) : 0;
 
     // run find scu and return json response
-    return new Promise((resolve, reject) => {
-      dimse.findScu(JSON.stringify(j), (result) => {
+    return new Promise((resolve) => {
+      dimse.findScu(JSON.stringify(j), result => {
         try {
-          const j = JSON.parse(result);
-          if (j.code === 0) {
-            const container = JSON.parse(j.container);
+          const json = JSON.parse(result);
+          if (json.code === 0) {
+            const container = JSON.parse(json.container);
             if (container) {
               resolve(container.slice(offset));
             } else {
