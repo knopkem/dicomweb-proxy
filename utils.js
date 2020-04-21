@@ -70,26 +70,28 @@ const fetchData = async (studyUid, seriesUid) => {
   const prom = new Promise((resolve, reject) => {
     try {
       scu(JSON.stringify(j), result => {
-        try {
-          const json = JSON.parse(result);
-          if (json.code === 0 || json.code === 2) {
-            storage.getItem(studyUid).then(item => {
-              if (!item) {
-                logger.info("stored", path.join(j.storagePath, studyUid));
-                const cacheTime = config.get("keepCacheInMinutes");
-                if (cacheTime >= 0) {
-                  storage.setItem(studyUid, addMinutes(new Date(), cacheTime));
+        if (result && result.length > 0) {
+          try {
+            const json = JSON.parse(result);
+            if (json.code === 0 || json.code === 2) {
+              storage.getItem(studyUid).then(item => {
+                if (!item) {
+                  logger.info("stored", path.join(j.storagePath, studyUid));
+                  const cacheTime = config.get("keepCacheInMinutes");
+                  if (cacheTime >= 0) {
+                    storage.setItem(studyUid, addMinutes(new Date(), cacheTime));
+                  }
                 }
-              }
-            });
-            resolve(result);
-          } else {
-            logger.info(JSON.parse(result));
+              });
+              resolve(result);
+            } else {
+              logger.info(JSON.parse(result));
+            }
+          } catch (error) {
+            reject(error, result);
           }
-        } catch (error) {
-          reject(error, result);
+          lock.delete(seriesUid);
         }
-        lock.delete(seriesUid);
       });
     } catch (error) {
       reject(error);
@@ -130,10 +132,12 @@ const utils = {
 
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
     dimse.echoScu(JSON.stringify(j), result => {
-      try {
-        logger.info(JSON.parse(result));
-      } catch (error) {
-        logger.error(result);
+      if (result && result.length > 0) {
+        try {
+          logger.info(JSON.parse(result));
+        } catch (error) {
+          logger.error(result);
+        }
       }
     });
   },
@@ -244,20 +248,22 @@ const utils = {
     // run find scu and return json response
     return new Promise((resolve) => {
       dimse.findScu(JSON.stringify(j), result => {
-        try {
-          const json = JSON.parse(result);
-          if (json.code === 0) {
-            const container = JSON.parse(json.container);
-            if (container) {
-              resolve(container.slice(offset));
-            } else {
-              resolve([]);
+        if (result && result.length > 0) {
+          try {
+            const json = JSON.parse(result);
+            if (json.code === 0) {
+              const container = JSON.parse(json.container);
+              if (container) {
+                resolve(container.slice(offset));
+              } else {
+                resolve([]);
+              }
             }
+          } catch (error) {
+            logger.error(error);
+            logger.error(result);
+            resolve([]);
           }
-        } catch (error) {
-          logger.error(error);
-          logger.error(result);
-          resolve([]);
         }
       });
     });
