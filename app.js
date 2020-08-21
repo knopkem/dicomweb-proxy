@@ -117,6 +117,24 @@ app.get(
 //------------------------------------------------------------------
 
 app.get(
+  "/viewer/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid",
+  middle,
+  async (req, res) => {
+    // fix for OHIF viewer assuming a lot of tags
+    const tags = ["00080016", "00080018"];
+
+    const { query } = req;
+    query.StudyInstanceUID = req.params.studyInstanceUid;
+    query.SeriesInstanceUID = req.params.seriesInstanceUid;
+
+    const json = await utils.doFind("IMAGE", query, tags);
+    res.json(json);
+  }
+);
+
+//------------------------------------------------------------------
+
+app.get(
   "/viewer/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata",
   middle,
   async (req, res) => {
