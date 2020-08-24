@@ -89,6 +89,35 @@ app.get("/viewer/rs/studies", middle, async (req, res) => {
 
 //------------------------------------------------------------------
 
+
+app.get(
+  "/viewer/viewer/rs/studies/:studyInstanceUid/metadata",
+  middle,
+  async (req, res) => {
+    // fix for OHIF viewer assuming a lot of tags
+    const tags = [
+      "00080005",
+      "00080054",
+      "00080056",
+      "00080060",
+      "0008103E",
+      "00081190",
+      "0020000E",
+      "00200011",
+      "00201209",
+    ];
+
+    const { query } = req;
+    query.StudyInstanceUID = req.params.studyInstanceUid;
+
+    const json = await utils.doFind("SERIES", query, tags);
+    res.json(json);
+  }
+);
+
+//------------------------------------------------------------------
+
+
 app.get(
   "/viewer/viewer/rs/studies/:studyInstanceUid/series",
   middle,
@@ -117,7 +146,7 @@ app.get(
 //------------------------------------------------------------------
 
 app.get(
-  "/viewer/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid",
+  "/viewer/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances",
   middle,
   async (req, res) => {
     // fix for OHIF viewer assuming a lot of tags
