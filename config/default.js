@@ -41,4 +41,7 @@ config.qidoMinChars = 0;
 // auto append * for patient name query
 config.qidoAppendWildcard = true;
 
+// enable verbose logging to std::out (contains DIMSE output)
+config.verboseLogging = false;
+
 module.exports = config;

@@ -63,6 +63,7 @@ const fetchData = async (studyUid, seriesUid) => {
   // set source and target from config
   j.source = config.get("source");
   j.target = config.get("target");
+  j.verbose = config.get("verboseLogging");
   j.storagePath = config.get("storagePath");
 
   const scu = config.get("useCget") ? dimse.getScu : dimse.moveScu;
@@ -115,6 +116,7 @@ const utils = {
     const j = {};
     j.source = config.get("source");
     j.storagePath = config.get("storagePath");
+    j.verbose = config.get("verboseLogging");
 
     dimse.startScp(JSON.stringify(j), result => {
       try {
@@ -129,6 +131,7 @@ const utils = {
     const j = {};
     j.source = config.get("source");
     j.target = config.get("target");
+    j.verbose = config.get("verboseLogging");
 
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
     dimse.echoScu(JSON.stringify(j), result => {
@@ -202,6 +205,7 @@ const utils = {
     // set source and target from config
     j.source = config.get("source");
     j.target = config.get("target");
+    j.verbose = config.get("verboseLogging");
 
     // parse all include fields
     const includes = query.includefield;
