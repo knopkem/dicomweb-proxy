@@ -262,8 +262,13 @@ const utils = {
               } else {
                 resolve([]);
               }
+            } else if (json.code === 1) {
+                logger.info('query is pending...');
+            } else {
+                logger.error(`c-find failure: ${json.message}`);
+                resolve([]);
             }
-          } catch (error) {
+      } catch (error) {
             logger.error(error);
             logger.error(result);
             resolve([]);
