@@ -253,26 +253,29 @@ const utils = {
     return new Promise((resolve) => {
       dimse.findScu(JSON.stringify(j), result => {
         if (result && result.length > 0) {
-          try {
-            const json = JSON.parse(result);
-            if (json.code === 0) {
-              const container = JSON.parse(json.container);
-              if (container) {
-                resolve(container.slice(offset));
-              } else {
-                resolve([]);
-              }
-            } else if (json.code === 1) {
-                logger.info('query is pending...');
-            } else {
-                logger.error(`c-find failure: ${json.message}`);
-                resolve([]);
-            }
-      } catch (error) {
-            logger.error(error);
-            logger.error(result);
+            try {
+                const json = JSON.parse(result);
+                if (json.code === 0) {
+                const container = JSON.parse(json.container);
+                if (container) {
+                    resolve(container.slice(offset));
+                } else {
+                    resolve([]);
+                }
+                } else if (json.code === 1) {
+                    logger.info('query is pending...');
+                } else {
+                    logger.error(`c-find failure: ${json.message}`);
+                    resolve([]);
+                }
+            } catch (error) {
+                    logger.error(error);
+                    logger.error(result);
+                    resolve([]);
+                }
+        } else {
+            logger.error('invalid result received');
             resolve([]);
-          }
         }
       });
     });
