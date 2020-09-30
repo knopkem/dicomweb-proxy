@@ -186,7 +186,7 @@ app.get("/viewer/viewer/wadouri", middle, async (req, res) => {
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
   const storagePath = config.get("storagePath");
-  const pathname = `${path.join(storagePath, studyUid, imageUid)}.dcm`;
+  const pathname = path.join(storagePath, studyUid, imageUid);
 
   try {
     await utils.fileExists(pathname);

@@ -12,28 +12,29 @@ A proxy to translate between dicomweb and traditional dicom dimse services
 
 ## Setup Instructions - npm
 
-* install in empty directory
+* install in empty directory:  
+```npm init -y```  
 ```npm install dicomweb-proxy```
 
-* update config file located in:
+* update config file located in:  
 ```./node_modules/dicomweb-proxy/config```
 
-* run:
+* start proxy:  
 ```npx dicomweb-proxy```
 
 ## Setup Instructions - source
 
-* clone repository and install dependencies 
+* clone repository and install dependencies:  
 ```npm install```
 
-* update config file located in:
+* update config file located in:  
 ```./config```
 
-* run:
+* start proxy:  
 ```npm start```
 
 ## What to modify
-* (optional) change source port or AET 
+* (optional) change our port or AET 
 
 ```
 config.source = {
@@ -53,13 +54,13 @@ config.target = {
 };
 ```
 
-* in case your PACS does not support C-GET, switch to C-Move:
+* in case your PACS does not support C-GET, switch to C-Move:  
 ```config.useCget = false;```
 
-* update port
+* update webserver port:  
 ```config.webserverPort = 5000;```
 
-* open webbrowser and start viewing
+* open webbrowser and start viewing:  
 e.g. ```http://localhost:5000```
 
 ## Optional: Authentication and Authorization
