@@ -29,7 +29,7 @@
     "body-parser": "^1.19.0",
     "config": "^3.3.2",
     "dicom-data-dictionary": "^0.3.1",
-    "dicom-dimse-native": "^1.2.2",
+    "dicom-dimse-native": "^1.2.4",
     "express": "^4.17.1",
     "express-session": "^1.17.0",
     "keycloak-connect": "^9.0.2",
@@ -43,7 +43,7 @@
     "eslint": "^7.10.0",
     "eslint-config-airbnb": "^18.1.0",
     "eslint-config-prettier": "^6.10.1",
-    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-jsx-a11y": "^6.2.3",
     "eslint-plugin-prettier": "^3.1.2",
     "prettier": "^1.19.1"
