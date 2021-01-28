@@ -3,7 +3,6 @@ const config = require("config");
 const shell = require("shelljs");
 const fs = require("fs");
 const path = require("path");
-const Keycloak = require("keycloak-connect");
 const session = require("express-session");
 const { v4: uuidv4 } = require("uuid");
 const utils = require("./utils.js");
@@ -11,15 +10,9 @@ const utils = require("./utils.js");
 const app = express();
 const logger = utils.getLogger();
 
-// unprotected middleware passing
-let middle = function middle(req, res, next) {
-  next();
-};
-
 // init auth if enabled
 if (config.get("useKeycloakAuth")) {
   const memoryStore = new session.MemoryStore();
-  const keycloak = new Keycloak({ store: memoryStore });
 
   // session
   app.use(
@@ -30,11 +23,6 @@ if (config.get("useKeycloakAuth")) {
       store: memoryStore,
     })
   );
-
-  app.use(keycloak.middleware({}));
-
-  // use keycloak as middleware
-  middle = keycloak.protect();
 }
 
 shell.mkdir("-p", config.get("logDir"));
@@ -43,25 +31,16 @@ shell.mkdir("-p", "./data");
 app.use(express.static("public"));
 
 // prevents nodejs from exiting
-process.on("uncaughtException", err => {
+process.on("uncaughtException", (err) => {
   logger.info("uncaught exception received:");
-  logger.info("------------------------------------------")
+  logger.info("------------------------------------------");
   logger.error(err.stack);
-  logger.info("------------------------------------------")
+  logger.info("------------------------------------------");
 });
 
 //------------------------------------------------------------------
 
-app.get("/", middle, async (req, res) => {
-  res.writeHead(301, {
-    Location: `http://${req.headers.host}/viewer/`,
-  });
-  return res.end();
-});
-
-//------------------------------------------------------------------
-
-app.get("/viewer/rs/studies", middle, async (req, res) => {
+app.get("/rs/studies", async (req, res) => {
   // fix for OHIF viewer assuming a lot of tags
   const tags = [
     "00080005",
@@ -89,38 +68,9 @@ app.get("/viewer/rs/studies", middle, async (req, res) => {
 
 //------------------------------------------------------------------
 
-
 app.get(
-  "/viewer/viewer/rs/studies/:studyInstanceUid/metadata",
-  middle,
-  async (req, res) => {
-    // fix for OHIF viewer assuming a lot of tags
-    const tags = [
-      "00080005",
-      "00080054",
-      "00080056",
-      "00080060",
-      "0008103E",
-      "00081190",
-      "0020000E",
-      "00200011",
-      "00201209",
-    ];
+  "/rs/studies/:studyInstanceUid/metadata",
 
-    const { query } = req;
-    query.StudyInstanceUID = req.params.studyInstanceUid;
-
-    const json = await utils.doFind("SERIES", query, tags);
-    res.json(json);
-  }
-);
-
-//------------------------------------------------------------------
-
-
-app.get(
-  "/viewer/viewer/rs/studies/:studyInstanceUid/series",
-  middle,
   async (req, res) => {
     // fix for OHIF viewer assuming a lot of tags
     const tags = [
@@ -146,8 +96,35 @@ app.get(
 //------------------------------------------------------------------
 
 app.get(
-  "/viewer/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances",
-  middle,
+  "/rs/studies/:studyInstanceUid/series",
+
+  async (req, res) => {
+    // fix for OHIF viewer assuming a lot of tags
+    const tags = [
+      "00080005",
+      "00080054",
+      "00080056",
+      "00080060",
+      "0008103E",
+      "00081190",
+      "0020000E",
+      "00200011",
+      "00201209",
+    ];
+
+    const { query } = req;
+    query.StudyInstanceUID = req.params.studyInstanceUid;
+
+    const json = await utils.doFind("SERIES", query, tags);
+    res.json(json);
+  }
+);
+
+//------------------------------------------------------------------
+
+app.get(
+  "/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances",
+
   async (req, res) => {
     // fix for OHIF viewer assuming a lot of tags
     const tags = ["00080016", "00080018"];
@@ -164,8 +141,8 @@ app.get(
 //------------------------------------------------------------------
 
 app.get(
-  "/viewer/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata",
-  middle,
+  "/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata",
+
   async (req, res) => {
     // fix for OHIF viewer assuming a lot of tags
     const tags = ["00080016", "00080018"];
@@ -181,7 +158,7 @@ app.get(
 
 //------------------------------------------------------------------
 
-app.get("/viewer/viewer/wadouri", middle, async (req, res) => {
+app.get("/wadouri", async (req, res) => {
   const studyUid = req.query.studyUID;
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
