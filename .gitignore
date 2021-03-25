@@ -1,4 +1,5 @@
 *.dcm
+.vscode
 .node-persist
 config/development.js
 config/production.js

@@ -23,9 +23,6 @@ config.storagePath = "./data";
 // webserver port
 config.webserverPort = 5000;
 
-// use keycloak auth
-config.useKeycloakAuth = false;
-
 // target PACS supports C-Get (if flase use C-Move instead)
 config.useCget = true;
 

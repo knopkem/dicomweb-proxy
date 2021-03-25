@@ -26,28 +26,27 @@
   },
   "homepage": "https://github.com/knopkem/dicomweb-proxy#readme",
   "dependencies": {
-    "body-parser": "^1.19.0",
     "config": "^3.3.4",
     "dicom-data-dictionary": "^0.3.1",
-    "dicom-dimse-native": "^1.2.5",
-    "express": "^4.17.1",
-    "express-session": "^1.17.0",
-    "keycloak-connect": "^12.0.4",
-    "node-persist": "^3.1.0",
+    "dicom-dimse-native": "1.2.7",
+    "dicom-parser": "^1.8.7",
+    "fastify": "^3.12.0",
+    "fastify-cors": "^4.1.0",
+    "fastify-static": "^3.4.0",
     "shelljs": "^0.8.4",
-    "uuid": "^7.0.3",
-    "winston": "^2.4.5",
-    "winston-daily-rotate-file": "^3.8.0"
+    "simple-node-logger": "^18.12.24",
+    "node-persist": "^3.1.0",
+    "uuid": "^7.0.3"
   },
   "devDependencies": {
-    "eslint": "^5.16.0",
+    "eslint": "^7.19.0",
     "eslint-config-airbnb": "^18.2.1",
     "eslint-config-prettier": "^6.15.0",
-    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-jsx-a11y": "^6.4.1",
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-react": "^7.22.0",
-    "eslint-plugin-react-hooks": "^2.5.1",
+    "eslint-plugin-react-hooks": "^4.2.0",
     "prettier": "^1.19.1"
   }
 }

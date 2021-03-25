@@ -1,30 +1,27 @@
-const config = require("config");
-const dict = require("dicom-data-dictionary");
-const dimse = require("dicom-dimse-native");
-const winston = require("winston");
+const config = require('config');
+const dict = require('dicom-data-dictionary');
+const dimse = require('dicom-dimse-native');
 const storage = require("node-persist");
 const path = require("path");
-const fs = require("fs");
-
-require("winston-daily-rotate-file");
+const fs = require('fs');
 
 const lock = new Map();
 
-const dailyRotateFile = new winston.transports.DailyRotateFile({
-  filename: `${config.get("logDir")}/app-%DATE%.log`, // last part is the filename suffix
-  datePattern: "YYYY-MM-DD-HH",
-  zippedArchive: true,
-  maxSize: "20m",
-  maxFiles: "14d",
-});
+// create a rolling file logger based on date/time that fires process events
+const opts = {
+  errorEventName: 'error',
+  logDirectory: './logs', // NOTE: folder must exist and be writable...
+  fileNamePattern: 'roll-<DATE>.log',
+  dateFormat: 'YYYY.MM.DD',
+};
+const manager = require('simple-node-logger').createLogManager();
+// manager.createConsoleAppender();
+manager.createRollingFileAppender(opts);
+const logger = manager.createLogger();
 
-const consoleLogger = new winston.transports.Console();
+//------------------------------------------------------------------
 
-const logger = new winston.Logger({
-  transports: [dailyRotateFile, consoleLogger],
-});
-
-const findDicomName = name => {
+const findDicomName = (name) => {
   // eslint-disable-next-line no-restricted-syntax
   for (const key of Object.keys(dict.standardDataElements)) {
     const value = dict.standardDataElements[key];
@@ -35,10 +32,14 @@ const findDicomName = name => {
   return undefined;
 };
 
+//------------------------------------------------------------------
+
 // helper to add minutes to date object
 const addMinutes = (date, minutes) => {
   return new Date(date.getTime() + minutes * 60000);
 };
+
+//------------------------------------------------------------------
 
 // request data from PACS via c-get or c-move
 const fetchData = async (studyUid, seriesUid) => {
@@ -103,49 +104,55 @@ const fetchData = async (studyUid, seriesUid) => {
   return prom;
 };
 
+//------------------------------------------------------------------
+
 const utils = {
   getLogger: () => {
     return logger;
   },
-
   init: async () => {
     await storage.init();
   },
-
   startScp: () => {
     const j = {};
     j.source = config.get("source");
-    j.storagePath = config.get("storagePath");
-    j.verbose = config.get("verboseLogging");
+    j.storagePath = config.get('storagePath');
+    j.verbose = config.get('verboseLogging');
 
-    dimse.startScp(JSON.stringify(j), result => {
-      try {
-        logger.info(JSON.parse(result));
-      } catch (error) {
-        logger.error(error, result);
-      }
+    logger.info(`pacs-server listening on port: ${j.source.port}`);
+ 
+    dimse.startScp(JSON.stringify(j), (result) => {
+      // currently this will never finish
+      logger.info(JSON.parse(result));
     });
   },
-
   sendEcho: () => {
+    const source = config.get('source');
+    const target = config.get('target');
     const j = {};
-    j.source = config.get("source");
-    j.target = config.get("target");
-    j.verbose = config.get("verboseLogging");
+    j.source = source;
+    j.target = target;
+    j.peers = [target.aet];
+    j.verbose = config.get('verboseLogging');
 
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
-    dimse.echoScu(JSON.stringify(j), result => {
-      if (result && result.length > 0) {
-        try {
-          logger.info(JSON.parse(result));
-        } catch (error) {
-          logger.error(result);
+
+    return new Promise((resolve, reject) => {
+      dimse.echoScu(JSON.stringify(j), (result) => {
+        if (result && result.length > 0) {
+          try {
+            logger.info(JSON.parse(result));
+            resolve();
+          } catch (error) {
+            logger.error(result);
+            reject();
+          }
         }
-      }
+        reject();
+      });
     });
   },
-
-  // fetch and wait
+    // fetch and wait
   waitOrFetchData: (studyUid, seriesUid) => {
     // check if already locked and return promise
     if (lock.has(seriesUid)) {
@@ -177,11 +184,10 @@ const utils = {
         );
       }
     });
-  },
-
-  fileExists: pathname => {
+  },  
+  fileExists: (pathname) => {
     return new Promise((resolve, reject) => {
-      fs.access(pathname, err => {
+      fs.access(pathname, (err) => {
         if (err) {
           reject(err);
         } else {
@@ -190,92 +196,153 @@ const utils = {
       });
     });
   },
-
+  studyLevelTags: () => {
+     return [
+      '00080005',
+      '00080020',
+      '00080030',
+      '00080050',
+      '00080054',
+      '00080056',
+      '00080061',
+      '00080090',
+      '00081190',
+      '00100010',
+      '00100020',
+      '00100030',
+      '00100040',
+      '0020000D',
+      '00200010',
+      '00201206',
+      '00201208',
+    ];
+  },
+  seriesLevelTags: () => {
+    return [
+      '00080005',
+      '00080054',
+      '00080056',
+      '00080060',
+      '0008103E',
+      '00081190',
+      '0020000E',
+      '00200011',
+      '00201209',
+    ];
+  },
+  imageLevelTags: () => {
+     return [
+      '00080016', 
+      '00080018'
+    ];
+  },
+  imageMetadataTags: () => {
+    return [
+      '00080016',
+      '00080018',
+      '00080060',
+      '00280002',
+      '00280004',
+      '00280010',
+      '00280011',
+      '00280030',
+      '00280100',
+      '00280101',
+      '00280102',
+      '00280103',
+      '00281050',
+      '00281051',
+      '00281052',
+      '00281053',
+      '00200032',
+      '00200037',
+    ];
+  },
   doFind: (queryLevel, query, defaults) => {
     // add query retrieve level
     const j = {
       tags: [
         {
-          key: "00080052",
+          key: '00080052',
           value: queryLevel,
         },
       ],
     };
 
     // set source and target from config
-    j.source = config.get("source");
+    j.source = config.get('source');
     j.target = config.get("target");
-    j.verbose = config.get("verboseLogging");
+    j.verbose = config.get('verboseLogging');
 
     // parse all include fields
     const includes = query.includefield;
 
     let tags = [];
     if (includes) {
-      tags = includes.split(",");
+      tags = includes.split(',');
     }
     tags.push(...defaults);
 
     // add parsed tags
-    tags.forEach(element => {
+    tags.forEach((element) => {
       const tagName = findDicomName(element) || element;
-      j.tags.push({ key: tagName, value: "" });
+      j.tags.push({ key: tagName, value: '' });
     });
 
     // add search param
-    let isValidInput = false; 
-    Object.keys(query).forEach( propName => {
+    let isValidInput = false;
+    Object.keys(query).forEach((propName) => {
       const tag = findDicomName(propName);
       if (tag) {
         let v = query[propName];
         // patient name check
-        if (tag === "00100010") {
-          // check if minimum number of chars for patient name are given 
-          if (config.get("qidoMinChars") > v.length) {
+        if (tag === '00100010') {
+          // check if minimum number of chars for patient name are given
+          if (config.get('qidoMinChars') > v.length) {
             isValidInput = true;
           }
           // auto append wildcard
-          if (config.get("qidoAppendWildcard")) {
-            v += "*";
+          if (config.get('qidoAppendWildcard')) {
+            v += '*';
           }
         }
         j.tags.push({ key: tag, value: v });
       }
-  })
-  // return with empty results if invalid 
-  if (isValidInput) {
-    return [];
-  }
+    });
+    // return with empty results if invalid
+    if (isValidInput) {
+      return [];
+    }
 
     const offset = query.offset ? parseInt(query.offset, 10) : 0;
 
     // run find scu and return json response
     return new Promise((resolve) => {
-      dimse.findScu(JSON.stringify(j), result => {
+      dimse.findScu(JSON.stringify(j), (result) => {
         if (result && result.length > 0) {
-            try {
-                const json = JSON.parse(result);
-                if (json.code === 0) {
-                const container = JSON.parse(json.container);
-                if (container) {
-                    resolve(container.slice(offset));
-                } else {
-                    resolve([]);
-                }
-                } else if (json.code === 1) {
-                    logger.info('query is pending...');
-                } else {
-                    logger.error(`c-find failure: ${json.message}`);
-                    resolve([]);
-                }
-            } catch (error) {
-                    logger.error(error);
-                    logger.error(result);
-                    resolve([]);
-                }
-        } else {
-            logger.error('invalid result received');
+          try {
+            const json = JSON.parse(result);
+            if (json.code === 0) {
+              const container = JSON.parse(json.container);
+              if (container) {
+                resolve(container.slice(offset));
+              } else {
+                resolve([]);
+              }
+            } else if (json.code === 1) {
+              logger.info('query is pending...');
+            } else {
+              logger.error(`c-find failure: ${json.message}`);
+              resolve([]);
+            }
+          } catch (error) {
+            logger.error(error);
+            logger.error(result);
             resolve([]);
+          }
+        } else {
+          logger.error('invalid result received');
+          resolve([]);
         }
       });
     });
