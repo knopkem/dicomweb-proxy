@@ -118,6 +118,8 @@ const utils = {
     j.source = config.get("source");
     j.storagePath = config.get('storagePath');
     j.verbose = config.get('verboseLogging');
+    j.peers = [config.get("target")];
+    j.permissive = false;
 
     logger.info(`pacs-server listening on port: ${j.source.port}`);
  
@@ -127,12 +129,9 @@ const utils = {
     });
   },
   sendEcho: () => {
-    const source = config.get('source');
-    const target = config.get('target');
     const j = {};
-    j.source = source;
-    j.target = target;
-    j.peers = [target.aet];
+    j.source = config.get('source');
+    j.target = config.get('target');
     j.verbose = config.get('verboseLogging');
 
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
