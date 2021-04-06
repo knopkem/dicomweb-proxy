@@ -19,12 +19,10 @@ fastify.register(require('fastify-cors'), {
 
 const logger = utils.getLogger();
 
-
 // log exceptions
 process.on('uncaughtException', (err) => {
   logger.error('uncaught exception received:');
   logger.error(err.stack);
-  process.exit(1);
 });
 
 //------------------------------------------------------------------
@@ -111,7 +109,25 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
   try {
     await utils.fileExists(pathname);
   } catch (error) {
-    await utils.waitOrFetchData(studyUid, seriesUid);
+    try {
+      await utils.waitOrFetchData(studyUid, seriesUid);
+    } catch (e) {
+      logger.error(e);
+      const msg = `fetch failed`;
+      reply.code(500);
+      reply.send(msg);
+      return;
+    }
+  }
+
+  try {
+    await utils.fileExists(pathname);
+  } catch (error) {
+      logger.error(error);
+      const msg = `file not found ${pathname}`;
+      reply.code(500);
+      reply.send(msg);
+      return;
   }
 
   // if the file is found, set Content-type and send data

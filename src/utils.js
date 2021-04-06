@@ -78,12 +78,17 @@ const fetchData = async (studyUid, seriesUid) => {
             if (json.code === 0 || json.code === 2) {
               storage.getItem(studyUid).then(item => {
                 if (!item) {
-                  logger.info("stored", path.join(j.storagePath, studyUid));
+                  logger.info(json);
                   const cacheTime = config.get("keepCacheInMinutes");
                   if (cacheTime >= 0) {
-                    storage.setItem(studyUid, addMinutes(new Date(), cacheTime));
+                    const minutes = addMinutes(new Date(), cacheTime);
+                    if (studyUid && minutes) {
+                      storage.setItem(studyUid, minutes);
+                    }
                   }
                 }
+              }).catch(e => {
+                logger.error(e);
               });
               resolve(result);
             } else {
@@ -111,7 +116,8 @@ const utils = {
     return logger;
   },
   init: async () => {
-    await storage.init();
+    const storagePath = config.get('storagePath');
+    await storage.init({dir: storagePath});
   },
   startScp: () => {
     const j = {};
