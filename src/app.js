@@ -104,8 +104,8 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
     return;
   }
   const storagePath = config.get('storagePath');
+  const studyPath = path.join(storagePath, studyUid)
   const pathname = path.join(storagePath, studyUid, imageUid);
-
   try {
     await utils.fileExists(pathname);
   } catch (error) {
@@ -125,6 +125,16 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
   } catch (error) {
       logger.error(error);
       const msg = `file not found ${pathname}`;
+      reply.code(500);
+      reply.send(msg);
+      return;
+  }
+
+  try {
+    await utils.compressFile(pathname, studyPath);
+  } catch (error) {
+      logger.error(error);
+      const msg = `failed to compress ${pathname}`;
       reply.code(500);
       reply.send(msg);
       return;

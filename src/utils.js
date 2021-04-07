@@ -1,20 +1,20 @@
-const config = require('config');
-const dict = require('dicom-data-dictionary');
-const dimse = require('dicom-dimse-native');
+const config = require("config");
+const dict = require("dicom-data-dictionary");
+const dimse = require("dicom-dimse-native");
 const storage = require("node-persist");
 const path = require("path");
-const fs = require('fs');
+const fs = require("fs");
 
 const lock = new Map();
 
 // create a rolling file logger based on date/time that fires process events
 const opts = {
-  errorEventName: 'error',
-  logDirectory: './logs', // NOTE: folder must exist and be writable...
-  fileNamePattern: 'roll-<DATE>.log',
-  dateFormat: 'YYYY.MM.DD',
+  errorEventName: "error",
+  logDirectory: "./logs", // NOTE: folder must exist and be writable...
+  fileNamePattern: "roll-<DATE>.log",
+  dateFormat: "YYYY.MM.DD",
 };
-const manager = require('simple-node-logger').createLogManager();
+const manager = require("simple-node-logger").createLogManager();
 // manager.createConsoleAppender();
 manager.createRollingFileAppender(opts);
 const logger = manager.createLogger();
@@ -71,25 +71,28 @@ const fetchData = async (studyUid, seriesUid) => {
 
   const prom = new Promise((resolve, reject) => {
     try {
-      scu(JSON.stringify(j), result => {
+      scu(JSON.stringify(j), (result) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
             if (json.code === 0 || json.code === 2) {
-              storage.getItem(studyUid).then(item => {
-                if (!item) {
-                  logger.info(json);
-                  const cacheTime = config.get("keepCacheInMinutes");
-                  if (cacheTime >= 0) {
-                    const minutes = addMinutes(new Date(), cacheTime);
-                    if (studyUid && minutes) {
-                      storage.setItem(studyUid, minutes);
+              storage
+                .getItem(studyUid)
+                .then((item) => {
+                  if (!item) {
+                    logger.info(json);
+                    const cacheTime = config.get("keepCacheInMinutes");
+                    if (cacheTime >= 0) {
+                      const minutes = addMinutes(new Date(), cacheTime);
+                      if (studyUid && minutes) {
+                        storage.setItem(studyUid, minutes);
+                      }
                     }
                   }
-                }
-              }).catch(e => {
-                logger.error(e);
-              });
+                })
+                .catch((e) => {
+                  logger.error(e);
+                });
               resolve(result);
             } else {
               logger.info(JSON.parse(result));
@@ -116,19 +119,19 @@ const utils = {
     return logger;
   },
   init: async () => {
-    const storagePath = config.get('storagePath');
-    await storage.init({dir: storagePath});
+    const storagePath = config.get("storagePath");
+    await storage.init({ dir: storagePath });
   },
   startScp: () => {
     const j = {};
     j.source = config.get("source");
-    j.storagePath = config.get('storagePath');
-    j.verbose = config.get('verboseLogging');
+    j.storagePath = config.get("storagePath");
+    j.verbose = config.get("verboseLogging");
     j.peers = [config.get("target")];
     j.permissive = false;
 
     logger.info(`pacs-server listening on port: ${j.source.port}`);
- 
+
     dimse.startScp(JSON.stringify(j), (result) => {
       // currently this will never finish
       logger.info(JSON.parse(result));
@@ -136,9 +139,9 @@ const utils = {
   },
   sendEcho: () => {
     const j = {};
-    j.source = config.get('source');
-    j.target = config.get('target');
-    j.verbose = config.get('verboseLogging');
+    j.source = config.get("source");
+    j.target = config.get("target");
+    j.verbose = config.get("verboseLogging");
 
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
 
@@ -157,7 +160,7 @@ const utils = {
       });
     });
   },
-    // fetch and wait
+  // fetch and wait
   waitOrFetchData: (studyUid, seriesUid) => {
     // check if already locked and return promise
     if (lock.has(seriesUid)) {
@@ -169,16 +172,19 @@ const utils = {
   // remove cached data if outdated
   clearCache: async (storagePath, currentUid, clearAll) => {
     const currentDate = new Date();
-    storage.forEach(item => {
+    storage.forEach((item) => {
       const dt = new Date(item.value);
       const directory = path.join(storagePath, item.key);
-      if ((dt.getTime() < currentDate.getTime() && item.key !== currentUid) || clearAll) {
+      if (
+        (dt.getTime() < currentDate.getTime() && item.key !== currentUid) ||
+        clearAll
+      ) {
         fs.rmdir(
           directory,
           {
             recursive: true,
           },
-          error => {
+          (error) => {
             if (error) {
               logger.error(error);
             } else {
@@ -189,7 +195,7 @@ const utils = {
         );
       }
     });
-  },  
+  },
   fileExists: (pathname) => {
     return new Promise((resolve, reject) => {
       fs.access(pathname, (err) => {
@@ -201,66 +207,97 @@ const utils = {
       });
     });
   },
+  compressFile: (inputFile, outputDirectory) => {
+    const j = {
+      sourcePath: inputFile,
+      storagePath: outputDirectory,
+      writeTransfer: config.get('transferSyntax'),
+      verbose: config.get('verboseLogging'),
+    };
+
+    console.log(j);
+
+    // run find scu and return json response
+    return new Promise((resolve, reject) => {
+      dimse.recompress(JSON.stringify(j), (result) => {
+        if (result && result.length > 0) {
+          try {
+            const json = JSON.parse(result);
+            if (json.code === 0) {
+              resolve();
+            } else {
+              logger.error(`recompression failure (${inputFile}): ${json.message}`);
+              reject();
+            }
+          } catch (error) {
+            logger.error(error);
+            logger.error(result);
+            reject();
+          }
+        } else {
+          logger.error("invalid result received");
+          reject();
+        }
+      });
+    });
+  },
   studyLevelTags: () => {
-     return [
-      '00080005',
-      '00080020',
-      '00080030',
-      '00080050',
-      '00080054',
-      '00080056',
-      '00080061',
-      '00080090',
-      '00081190',
-      '00100010',
-      '00100020',
-      '00100030',
-      '00100040',
-      '0020000D',
-      '00200010',
-      '00201206',
-      '00201208',
+    return [
+      "00080005",
+      "00080020",
+      "00080030",
+      "00080050",
+      "00080054",
+      "00080056",
+      "00080061",
+      "00080090",
+      "00081190",
+      "00100010",
+      "00100020",
+      "00100030",
+      "00100040",
+      "0020000D",
+      "00200010",
+      "00201206",
+      "00201208",
     ];
   },
   seriesLevelTags: () => {
     return [
-      '00080005',
-      '00080054',
-      '00080056',
-      '00080060',
-      '0008103E',
-      '00081190',
-      '0020000E',
-      '00200011',
-      '00201209',
+      "00080005",
+      "00080054",
+      "00080056",
+      "00080060",
+      "0008103E",
+      "00081190",
+      "0020000E",
+      "00200011",
+      "00201209",
     ];
   },
   imageLevelTags: () => {
-     return [
-      '00080016', 
-      '00080018'
-    ];
+    return ["00080016", "00080018"];
   },
   imageMetadataTags: () => {
     return [
-      '00080016',
-      '00080018',
-      '00080060',
-      '00280002',
-      '00280004',
-      '00280010',
-      '00280011',
-      '00280030',
-      '00280100',
-      '00280101',
-      '00280102',
-      '00280103',
-      '00281050',
-      '00281051',
-      '00281052',
-      '00281053',
-      '00200032',
-      '00200037',
+      "00080016",
+      "00080018",
+      "00080060",
+      "00280002",
+      "00280004",
+      "00280010",
+      "00280011",
+      "00280030",
+      "00280100",
+      "00280101",
+      "00280102",
+      "00280103",
+      "00281050",
+      "00281051",
+      "00281052",
+      "00281053",
+      "00200032",
+      "00200037",
     ];
   },
   doFind: (queryLevel, query, defaults) => {
@@ -268,30 +305,30 @@ const utils = {
     const j = {
       tags: [
         {
-          key: '00080052',
+          key: "00080052",
           value: queryLevel,
         },
       ],
     };
 
     // set source and target from config
-    j.source = config.get('source');
+    j.source = config.get("source");
     j.target = config.get("target");
-    j.verbose = config.get('verboseLogging');
+    j.verbose = config.get("verboseLogging");
 
     // parse all include fields
     const includes = query.includefield;
 
     let tags = [];
     if (includes) {
-      tags = includes.split(',');
+      tags = includes.split(",");
     }
     tags.push(...defaults);
 
     // add parsed tags
     tags.forEach((element) => {
       const tagName = findDicomName(element) || element;
-      j.tags.push({ key: tagName, value: '' });
+      j.tags.push({ key: tagName, value: "" });
     });
 
     // add search param
@@ -301,14 +338,14 @@ const utils = {
       if (tag) {
         let v = query[propName];
         // patient name check
-        if (tag === '00100010') {
+        if (tag === "00100010") {
           // check if minimum number of chars for patient name are given
-          if (config.get('qidoMinChars') > v.length) {
+          if (config.get("qidoMinChars") > v.length) {
             isValidInput = true;
           }
           // auto append wildcard
-          if (config.get('qidoAppendWildcard')) {
-            v += '*';
+          if (config.get("qidoAppendWildcard")) {
+            v += "*";
           }
         }
         j.tags.push({ key: tag, value: v });
@@ -335,7 +372,7 @@ const utils = {
                 resolve([]);
               }
             } else if (json.code === 1) {
-              logger.info('query is pending...');
+              logger.info("query is pending...");
             } else {
               logger.error(`c-find failure: ${json.message}`);
               resolve([]);
@@ -346,7 +383,7 @@ const utils = {
             resolve([]);
           }
         } else {
-          logger.error('invalid result received');
+          logger.error("invalid result received");
           resolve([]);
         }
       });

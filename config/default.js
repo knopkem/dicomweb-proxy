@@ -14,6 +14,9 @@ config.target = {
   port: "5678"
 };
 
+// transfer syntax (e.g. compression of dicom files) used for transmission via wado
+config.transferSyntax = '1.2.840.10008.1.2.4.80';
+
 // log directory
 config.logDir = "./logs";
 
