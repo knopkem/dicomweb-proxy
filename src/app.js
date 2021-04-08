@@ -105,7 +105,7 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
   }
   const storagePath = config.get('storagePath');
   const studyPath = path.join(storagePath, studyUid)
-  const pathname = path.join(storagePath, studyUid, imageUid);
+  const pathname = path.join(studyPath, imageUid);
   try {
     await utils.fileExists(pathname);
   } catch (error) {

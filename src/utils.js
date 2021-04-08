@@ -62,6 +62,10 @@ const fetchData = async (studyUid, seriesUid) => {
   };
 
   // set source and target from config
+  const ts = config.get('transferSyntax');
+  j.netTransferPrefer = ts;
+  j.netTransferPropose = ts;
+  j.writeTransfer = ts; 
   j.source = config.get("source");
   j.target = config.get("target");
   j.verbose = config.get("verboseLogging");
@@ -123,10 +127,14 @@ const utils = {
     await storage.init({ dir: storagePath });
   },
   startScp: () => {
+    const ts = config.get('transferSyntax');
     const j = {};
     j.source = config.get("source");
     j.storagePath = config.get("storagePath");
     j.verbose = config.get("verboseLogging");
+    j.netTransferPrefer = ts;
+    j.netTransferPropose = ts;
+    j.writeTransfer = ts; 
     j.peers = [config.get("target")];
     j.permissive = false;
 
@@ -214,8 +222,6 @@ const utils = {
       writeTransfer: config.get('transferSyntax'),
       verbose: config.get('verboseLogging'),
     };
-
-    console.log(j);
 
     // run find scu and return json response
     return new Promise((resolve, reject) => {
