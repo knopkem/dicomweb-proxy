@@ -11,18 +11,27 @@ shell.mkdir('-p', './data');
 const utils = require('./utils.js');
 
 fastify.register(require('fastify-static'), {
-  root: path.join(__dirname, '../public')
+  root: path.join(__dirname, '../public'),
 });
 
-fastify.register(require('fastify-cors'), { 
-});
+fastify.register(require('fastify-cors'), {});
+
+fastify.register(require('fastify-compress'), { global: false });
 
 const logger = utils.getLogger();
 
 // log exceptions
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
   logger.error('uncaught exception received:');
   logger.error(err.stack);
+});
+
+//------------------------------------------------------------------
+
+fastify.get('/viewer/rs/studies', async (req, reply) => {
+  const tags = utils.studyLevelTags();
+  const json = await utils.doFind('STUDY', req.query, tags);
+  reply.send(json);
 });
 
 //------------------------------------------------------------------
@@ -35,60 +44,48 @@ fastify.get('/rs/studies', async (req, reply) => {
 
 //------------------------------------------------------------------
 
-fastify.get(
-  '/viewer/rs/studies/:studyInstanceUid/metadata',
-  async (req, reply) => {
-    const { query } = req;
-    query.StudyInstanceUID = req.params.studyInstanceUid;
-    const tags = utils.seriesLevelTags();
-    const json = await utils.doFind('SERIES', query, tags);
-    reply.send(json);
-  }
-);
+fastify.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req, reply) => {
+  const { query } = req;
+  query.StudyInstanceUID = req.params.studyInstanceUid;
+  const tags = utils.seriesLevelTags();
+  const json = await utils.doFind('SERIES', query, tags);
+  reply.send(json);
+});
 
 //------------------------------------------------------------------
 
-fastify.get(
-  '/viewer/rs/studies/:studyInstanceUid/series',
-  async (req, reply) => {
-    const tags = utils.seriesLevelTags();
-    const { query } = req;
-    query.StudyInstanceUID = req.params.studyInstanceUid;
+fastify.get('/viewer/rs/studies/:studyInstanceUid/series', async (req, reply) => {
+  const tags = utils.seriesLevelTags();
+  const { query } = req;
+  query.StudyInstanceUID = req.params.studyInstanceUid;
 
-    const json = await utils.doFind('SERIES', query, tags);
-    reply.send(json);
-  }
-);
+  const json = await utils.doFind('SERIES', query, tags);
+  reply.send(json);
+});
 
 //------------------------------------------------------------------
 
-fastify.get(
-  '/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances',
-  async (req, reply) => {
-    const tags = utils.imageLevelTags();
-    const { query } = req;
-    query.StudyInstanceUID = req.params.studyInstanceUid;
-    query.SeriesInstanceUID = req.params.seriesInstanceUid;
+fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req, reply) => {
+  const tags = utils.imageLevelTags();
+  const { query } = req;
+  query.StudyInstanceUID = req.params.studyInstanceUid;
+  query.SeriesInstanceUID = req.params.seriesInstanceUid;
 
-    const json = await utils.doFind('IMAGE', query, tags);
-    reply.send(json);
-  }
-);
+  const json = await utils.doFind('IMAGE', query, tags);
+  reply.send(json);
+});
 
 //------------------------------------------------------------------
 
-fastify.get(
-  '/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata',
-  async (req, reply) => {
-    const tags = utils.imageLevelTags();
-    const { query } = req;
-    query.StudyInstanceUID = req.params.studyInstanceUid;
-    query.SeriesInstanceUID = req.params.seriesInstanceUid;
+fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req, reply) => {
+  const tags = utils.imageLevelTags();
+  const { query } = req;
+  query.StudyInstanceUID = req.params.studyInstanceUid;
+  query.SeriesInstanceUID = req.params.seriesInstanceUid;
 
-    const json = await utils.doFind('IMAGE', query, tags);
-    reply.send(json);
-  }
-);
+  const json = await utils.doFind('IMAGE', query, tags);
+  reply.send(json);
+});
 
 //------------------------------------------------------------------
 
@@ -104,7 +101,7 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
     return;
   }
   const storagePath = config.get('storagePath');
-  const studyPath = path.join(storagePath, studyUid)
+  const studyPath = path.join(storagePath, studyUid);
   const pathname = path.join(studyPath, imageUid);
   try {
     await utils.fileExists(pathname);
@@ -123,28 +120,25 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
   try {
     await utils.fileExists(pathname);
   } catch (error) {
-      logger.error(error);
-      const msg = `file not found ${pathname}`;
-      reply.code(500);
-      reply.send(msg);
-      return;
+    logger.error(error);
+    const msg = `file not found ${pathname}`;
+    reply.code(500);
+    reply.send(msg);
+    return;
   }
 
   try {
     await utils.compressFile(pathname, studyPath);
   } catch (error) {
-      logger.error(error);
-      const msg = `failed to compress ${pathname}`;
-      reply.code(500);
-      reply.send(msg);
-      return;
+    logger.error(error);
+    const msg = `failed to compress ${pathname}`;
+    reply.code(500);
+    reply.send(msg);
+    return;
   }
 
   // if the file is found, set Content-type and send data
-  reply.header(
-    'Content-Type',
-    'application/dicom'
-  );
+  reply.header('Content-Type', 'application/dicom');
 
   // read file from file system
   fs.readFile(pathname, (err, data) => {
@@ -160,7 +154,7 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
 
 //------------------------------------------------------------------
 
-const port= config.get('webserverPort');
+const port = config.get('webserverPort');
 logger.info('starting...');
 fastify.listen(port, async (err, address) => {
   if (err) {
@@ -172,7 +166,7 @@ fastify.listen(port, async (err, address) => {
   await utils.init();
 
   // if not using c-get, start our scp
-  if (!config.get("useCget")) {
+  if (!config.get('useCget')) {
     utils.startScp();
   }
   utils.sendEcho();
