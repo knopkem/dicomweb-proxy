@@ -16,7 +16,11 @@ fastify.register(require('fastify-static'), {
 
 fastify.register(require('fastify-cors'), {});
 
-fastify.register(require('fastify-compress'), { global: false });
+fastify.register(require('fastify-sensible'));
+
+fastify.register(require('fastify-helmet'), { contentSecurityPolicy: false });
+
+fastify.register(require('fastify-compress'), { global: true });
 
 const logger = utils.getLogger();
 
