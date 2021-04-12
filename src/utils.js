@@ -36,7 +36,36 @@ const findDicomName = name => {
 
 // helper to add minutes to date object
 const addMinutes = (date, minutes) => {
-  return new Date(date.getTime() + minutes * 60000);
+  const ms = date.getTime() + minutes * 60000;
+  return new Date(parseInt(ms, 10));
+};
+
+//------------------------------------------------------------------
+
+// remove cached data if outdated
+const clearCache = (storagePath, currentUid) => {
+  const currentDate = new Date();
+  storage.forEach(item => {
+    const dt = new Date(item.value);
+    const directory = path.join(storagePath, item.key);
+    if ((dt.getTime() < currentDate.getTime() && item.key !== currentUid)) {
+      logger.info(`cleaning directory: ${directory}`);
+      fs.rmdir(
+        directory,
+        {
+          recursive: true,
+        },
+        error => {
+          if (error) {
+            logger.error(error);
+          } else {
+            logger.info('deleted: ', directory);
+            storage.rm(item.key); // not nice but seems to work
+          }
+        }
+      );
+    }
+  });
 };
 
 //------------------------------------------------------------------
@@ -75,6 +104,8 @@ const fetchData = async (studyUid, seriesUid) => {
 
   const prom = new Promise((resolve, reject) => {
     try {
+      logger.info(`fetch series: ${studyUid}/${seriesUid}`);
+      clearCache(j.storagePath, studyUid);
       scu(JSON.stringify(j), result => {
         if (result && result.length > 0) {
           try {
@@ -84,7 +115,7 @@ const fetchData = async (studyUid, seriesUid) => {
                 .getItem(studyUid)
                 .then(item => {
                   if (!item) {
-                    logger.info(json);
+                    logger.info(`fetch finished: ${studyUid}/${seriesUid}`);
                     const cacheTime = config.get('keepCacheInMinutes');
                     if (cacheTime >= 0) {
                       const minutes = addMinutes(new Date(), cacheTime);
@@ -123,8 +154,8 @@ const utils = {
     return logger;
   },
   init: async () => {
-    const storagePath = config.get('storagePath');
-    await storage.init({ dir: storagePath });
+    const persistPath = path.join(config.get('storagePath'), 'persist');
+    await storage.init({ dir: persistPath });
   },
   startScp: () => {
     const ts = config.get('transferSyntax');
@@ -177,30 +208,6 @@ const utils = {
     return fetchData(studyUid, seriesUid);
   },
 
-  // remove cached data if outdated
-  clearCache: async (storagePath, currentUid, clearAll) => {
-    const currentDate = new Date();
-    storage.forEach(item => {
-      const dt = new Date(item.value);
-      const directory = path.join(storagePath, item.key);
-      if ((dt.getTime() < currentDate.getTime() && item.key !== currentUid) || clearAll) {
-        fs.rmdir(
-          directory,
-          {
-            recursive: true,
-          },
-          error => {
-            if (error) {
-              logger.error(error);
-            } else {
-              logger.info('deleted', directory);
-              storage.rm(item.key); // not nice but seems to work
-            }
-          }
-        );
-      }
-    });
-  },
   fileExists: pathname => {
     return new Promise((resolve, reject) => {
       fs.access(pathname, err => {
