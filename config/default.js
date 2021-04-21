@@ -43,6 +43,9 @@ config.webserverPort = 5000;
 // target PACS supports C-Get (if flase use C-Move instead)
 config.useCget = true;
 
+// use image level fetch over series level (warn: slower but less load on PACS)
+config.useImageLevelFetch = false;
+
 // how long before deleting cache, 0 for eternity
 config.keepCacheInMinutes = 60;
 

@@ -94,6 +94,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
 //------------------------------------------------------------------
 
 fastify.get('/viewer/wadouri', async (req, reply) => {
+  const imageLevelFetch = config.get('useImageLevelFetch');
   const studyUid = req.query.studyUID;
   const seriesUid = req.query.seriesUID;
   const imageUid = req.query.objectUID;
@@ -111,7 +112,7 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
     await utils.fileExists(pathname);
   } catch (error) {
     try {
-      await utils.waitOrFetchData(studyUid, seriesUid);
+      await utils.waitOrFetchData(studyUid, seriesUid, imageLevelFetch  ? imageUid: null);
     } catch (e) {
       logger.error(e);
       const msg = `fetch failed`;

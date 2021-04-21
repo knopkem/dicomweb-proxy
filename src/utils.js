@@ -71,13 +71,13 @@ const clearCache = (storagePath, currentUid) => {
 //------------------------------------------------------------------
 
 // request data from PACS via c-get or c-move
-const fetchData = async (studyUid, seriesUid) => {
+const fetchData = async (studyUid, seriesUid, imageUid) => {
   // add query retrieve level and fetch whole study
   const j = {
     tags: [
       {
         key: '00080052',
-        value: 'SERIES',
+        value: imageUid ? 'IMAGE': 'SERIES',
       },
       {
         key: '0020000D',
@@ -89,6 +89,17 @@ const fetchData = async (studyUid, seriesUid) => {
       },
     ],
   };
+
+  const lockId = imageUid ? imageUid : seriesUid;
+
+  if (imageUid) {
+    j.tags.push( 
+      {
+        key: '00080018',
+        value: imageUid,
+      }
+    );
+  }
 
   // set source and target from config
   const ts = config.get('transferSyntax');
@@ -104,7 +115,11 @@ const fetchData = async (studyUid, seriesUid) => {
 
   const prom = new Promise((resolve, reject) => {
     try {
-      logger.info(`fetch series: ${studyUid}/${seriesUid}`);
+      if (imageUid) {
+        logger.info(`fetch image: ${studyUid}/${seriesUid}/${imageUid}`);
+      } else {
+        logger.info(`fetch series: ${studyUid}/${seriesUid}`);
+      }
       clearCache(j.storagePath, studyUid);
       scu(JSON.stringify(j), result => {
         if (result && result.length > 0) {
@@ -115,7 +130,11 @@ const fetchData = async (studyUid, seriesUid) => {
                 .getItem(studyUid)
                 .then(item => {
                   if (!item) {
-                    logger.info(`fetch finished: ${studyUid}/${seriesUid}`);
+                    if (imageUid) {
+                      logger.info(`fetch finished: ${studyUid}/${seriesUid}/${imageUid}`);
+                    } else {
+                      logger.info(`fetch finished: ${studyUid}/${seriesUid}`);
+                    }
                     const cacheTime = config.get('keepCacheInMinutes');
                     if (cacheTime >= 0) {
                       const minutes = addMinutes(new Date(), cacheTime);
@@ -135,7 +154,7 @@ const fetchData = async (studyUid, seriesUid) => {
           } catch (error) {
             reject(error, result);
           }
-          lock.delete(seriesUid);
+          lock.delete(lockId);
         }
       });
     } catch (error) {
@@ -143,7 +162,7 @@ const fetchData = async (studyUid, seriesUid) => {
     }
   });
   // store in lock
-  lock.set(seriesUid, prom);
+  lock.set(lockId, prom);
   return prom;
 };
 
@@ -200,12 +219,14 @@ const utils = {
     });
   },
   // fetch and wait
-  waitOrFetchData: (studyUid, seriesUid) => {
+  waitOrFetchData: (studyUid, seriesUid, imageUid) => {
+    const lockId = imageUid ? imageUid : seriesUid;
+
     // check if already locked and return promise
-    if (lock.has(seriesUid)) {
-      return lock.get(seriesUid);
+    if (lock.has(lockId)) {
+      return lock.get(lockId);
     }
-    return fetchData(studyUid, seriesUid);
+    return fetchData(studyUid, seriesUid, imageUid);
   },
 
   fileExists: pathname => {
