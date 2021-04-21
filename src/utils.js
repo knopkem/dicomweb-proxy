@@ -19,9 +19,11 @@ const manager = require('simple-node-logger').createLogManager();
 manager.createRollingFileAppender(opts);
 const logger = manager.createLogger();
 
+const QUERY_LEVEL = Object.freeze({ STUDY: 1, SERIES: 2, IMAGE: 3 });
+
 //------------------------------------------------------------------
 
-const findDicomName = name => {
+const findDicomName = (name) => {
   // eslint-disable-next-line no-restricted-syntax
   for (const key of Object.keys(dict.standardDataElements)) {
     const value = dict.standardDataElements[key];
@@ -42,20 +44,74 @@ const addMinutes = (date, minutes) => {
 
 //------------------------------------------------------------------
 
+const getLockUid = (studyUid, seriesUid, imageUid, level) => {
+  if (level === 'STUDY') return studyUid;
+  if (level === 'SERIES') return seriesUid;
+  if (level === 'IMAGE') return imageUid;
+
+  logger.warn('getLockUid, level not found: ', level);
+  return seriesUid;
+};
+
+//------------------------------------------------------------------
+
+const getQueryLevel = (level) => {
+  if (level === 'STUDY') return QUERY_LEVEL.STUDY;
+  if (level === 'SERIES') return QUERY_LEVEL.SERIES;
+  if (level === 'IMAGE') return QUERY_LEVEL.IMAGE;
+
+  logger.warn('getQueryLevel, level not found: ', level);
+  return QUERY_LEVEL.SERIES;
+};
+
+//------------------------------------------------------------------
+
+const queryLevelToString = (qlevel) => {
+  switch (qlevel) {
+    case 1:
+      return 'STUDY';
+    case 2:
+      return 'SERIES';
+    case 3:
+      return 'IMAGE';
+    default:
+      logger.warn('queryLevelToString, level not found: ', qlevel);
+      return 'SERIES';
+  }
+};
+
+//------------------------------------------------------------------
+
+const queryLevelToPath = (studyUid, seriesUid, imageUid, qlevel) => {
+  switch (qlevel) {
+    case 1:
+      return studyUid;
+    case 2:
+      return `${studyUid}/${seriesUid}`;
+    case 3:
+      return `${studyUid}/${seriesUid}/${imageUid}`;
+    default:
+      logger.warn('queryLevelToPath, level not found: ', qlevel);
+      return `${studyUid}/${seriesUid}`;
+  }
+};
+
+//------------------------------------------------------------------
+
 // remove cached data if outdated
 const clearCache = (storagePath, currentUid) => {
   const currentDate = new Date();
-  storage.forEach(item => {
+  storage.forEach((item) => {
     const dt = new Date(item.value);
     const directory = path.join(storagePath, item.key);
-    if ((dt.getTime() < currentDate.getTime() && item.key !== currentUid)) {
+    if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
       logger.info(`cleaning directory: ${directory}`);
       fs.rmdir(
         directory,
         {
           recursive: true,
         },
-        error => {
+        (error) => {
           if (error) {
             logger.error(error);
           } else {
@@ -71,35 +127,38 @@ const clearCache = (storagePath, currentUid) => {
 //------------------------------------------------------------------
 
 // request data from PACS via c-get or c-move
-const fetchData = async (studyUid, seriesUid, imageUid) => {
+const fetchData = async (studyUid, seriesUid, imageUid, level) => {
+  const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
+  const queryLevel = getQueryLevel(level);
+  const queryLevelString = queryLevelToString(queryLevel);
+
   // add query retrieve level and fetch whole study
   const j = {
     tags: [
       {
         key: '00080052',
-        value: imageUid ? 'IMAGE': 'SERIES',
+        value: queryLevelString,
       },
       {
         key: '0020000D',
         value: studyUid,
       },
-      {
-        key: '0020000E',
-        value: seriesUid,
-      },
     ],
   };
 
-  const lockId = imageUid ? imageUid : seriesUid;
+  if (queryLevel >= QUERY_LEVEL.SERIES) {
+    j.tags.push({
+      key: '0020000E',
+      value: seriesUid,
+    });
+  }
 
-  if (imageUid) {
-    j.tags.push( 
-      {
+  if (queryLevel >= QUERY_LEVEL.IMAGE) {
+      j.tags.push({
         key: '00080018',
         value: imageUid,
-      }
-    );
-  }
+      });
+    }
 
   // set source and target from config
   const ts = config.get('transferSyntax');
@@ -112,30 +171,23 @@ const fetchData = async (studyUid, seriesUid, imageUid) => {
   j.storagePath = config.get('storagePath');
 
   const scu = config.get('useCget') ? dimse.getScu : dimse.moveScu;
+  const uidPath = queryLevelToPath(studyUid, seriesUid, imageUid, queryLevel);
+  const cacheTime = config.get('keepCacheInMinutes');
 
   const prom = new Promise((resolve, reject) => {
     try {
-      if (imageUid) {
-        logger.info(`fetch image: ${studyUid}/${seriesUid}/${imageUid}`);
-      } else {
-        logger.info(`fetch series: ${studyUid}/${seriesUid}`);
-      }
+      logger.info(`fetch start: ${uidPath}`);
       clearCache(j.storagePath, studyUid);
-      scu(JSON.stringify(j), result => {
+      scu(JSON.stringify(j), (result) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
             if (json.code === 0 || json.code === 2) {
+              logger.info(`fetch finished: ${uidPath}`);
               storage
                 .getItem(studyUid)
-                .then(item => {
+                .then((item) => {
                   if (!item) {
-                    if (imageUid) {
-                      logger.info(`fetch finished: ${studyUid}/${seriesUid}/${imageUid}`);
-                    } else {
-                      logger.info(`fetch finished: ${studyUid}/${seriesUid}`);
-                    }
-                    const cacheTime = config.get('keepCacheInMinutes');
                     if (cacheTime >= 0) {
                       const minutes = addMinutes(new Date(), cacheTime);
                       if (studyUid && minutes) {
@@ -144,7 +196,7 @@ const fetchData = async (studyUid, seriesUid, imageUid) => {
                     }
                   }
                 })
-                .catch(e => {
+                .catch((e) => {
                   logger.error(e);
                 });
               resolve(result);
@@ -169,9 +221,7 @@ const fetchData = async (studyUid, seriesUid, imageUid) => {
 //------------------------------------------------------------------
 
 const utils = {
-  getLogger: () => {
-    return logger;
-  },
+  getLogger: () => logger,
   init: async () => {
     const persistPath = path.join(config.get('storagePath'), 'persist');
     await storage.init({ dir: persistPath });
@@ -190,7 +240,7 @@ const utils = {
 
     logger.info(`pacs-server listening on port: ${j.source.port}`);
 
-    dimse.startScp(JSON.stringify(j), result => {
+    dimse.startScp(JSON.stringify(j), (result) => {
       // currently this will never finish
       logger.info(JSON.parse(result));
     });
@@ -204,7 +254,7 @@ const utils = {
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
 
     return new Promise((resolve, reject) => {
-      dimse.echoScu(JSON.stringify(j), result => {
+      dimse.echoScu(JSON.stringify(j), (result) => {
         if (result && result.length > 0) {
           try {
             logger.info(JSON.parse(result));
@@ -219,27 +269,26 @@ const utils = {
     });
   },
   // fetch and wait
-  waitOrFetchData: (studyUid, seriesUid, imageUid) => {
-    const lockId = imageUid ? imageUid : seriesUid;
+  waitOrFetchData: (studyUid, seriesUid, imageUid, level) => {
+    const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
 
     // check if already locked and return promise
     if (lock.has(lockId)) {
       return lock.get(lockId);
     }
-    return fetchData(studyUid, seriesUid, imageUid);
+    return fetchData(studyUid, seriesUid, imageUid, level);
   },
 
-  fileExists: pathname => {
-    return new Promise((resolve, reject) => {
-      fs.access(pathname, err => {
+  fileExists: (pathname) =>
+    new Promise((resolve, reject) => {
+      fs.access(pathname, (err) => {
         if (err) {
           reject(err);
         } else {
           resolve();
         }
       });
-    });
-  },
+    }),
   compressFile: (inputFile, outputDirectory) => {
     const j = {
       sourcePath: inputFile,
@@ -250,7 +299,7 @@ const utils = {
 
     // run find scu and return json response
     return new Promise((resolve, reject) => {
-      dimse.recompress(JSON.stringify(j), result => {
+      dimse.recompress(JSON.stringify(j), (result) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
@@ -272,55 +321,47 @@ const utils = {
       });
     });
   },
-  studyLevelTags: () => {
-    return [
-      '00080005',
-      '00080020',
-      '00080030',
-      '00080050',
-      '00080054',
-      '00080056',
-      '00080061',
-      '00080090',
-      '00081190',
-      '00100010',
-      '00100020',
-      '00100030',
-      '00100040',
-      '0020000D',
-      '00200010',
-      '00201206',
-      '00201208',
-    ];
-  },
-  seriesLevelTags: () => {
-    return ['00080005', '00080054', '00080056', '00080060', '0008103E', '00081190', '0020000E', '00200011', '00201209'];
-  },
-  imageLevelTags: () => {
-    return ['00080016', '00080018'];
-  },
-  imageMetadataTags: () => {
-    return [
-      '00080016',
-      '00080018',
-      '00080060',
-      '00280002',
-      '00280004',
-      '00280010',
-      '00280011',
-      '00280030',
-      '00280100',
-      '00280101',
-      '00280102',
-      '00280103',
-      '00281050',
-      '00281051',
-      '00281052',
-      '00281053',
-      '00200032',
-      '00200037',
-    ];
-  },
+  studyLevelTags: () => [
+    '00080005',
+    '00080020',
+    '00080030',
+    '00080050',
+    '00080054',
+    '00080056',
+    '00080061',
+    '00080090',
+    '00081190',
+    '00100010',
+    '00100020',
+    '00100030',
+    '00100040',
+    '0020000D',
+    '00200010',
+    '00201206',
+    '00201208',
+  ],
+  seriesLevelTags: () => ['00080005', '00080054', '00080056', '00080060', '0008103E', '00081190', '0020000E', '00200011', '00201209'],
+  imageLevelTags: () => ['00080016', '00080018'],
+  imageMetadataTags: () => [
+    '00080016',
+    '00080018',
+    '00080060',
+    '00280002',
+    '00280004',
+    '00280010',
+    '00280011',
+    '00280030',
+    '00280100',
+    '00280101',
+    '00280102',
+    '00280103',
+    '00281050',
+    '00281051',
+    '00281052',
+    '00281053',
+    '00200032',
+    '00200037',
+  ],
   doFind: (queryLevel, query, defaults) => {
     // add query retrieve level
     const j = {
@@ -347,14 +388,14 @@ const utils = {
     tags.push(...defaults);
 
     // add parsed tags
-    tags.forEach(element => {
+    tags.forEach((element) => {
       const tagName = findDicomName(element) || element;
       j.tags.push({ key: tagName, value: '' });
     });
 
     // add search param
     let isValidInput = false;
-    Object.keys(query).forEach(propName => {
+    Object.keys(query).forEach((propName) => {
       const tag = findDicomName(propName);
       if (tag) {
         let v = query[propName];
@@ -380,8 +421,8 @@ const utils = {
     const offset = query.offset ? parseInt(query.offset, 10) : 0;
 
     // run find scu and return json response
-    return new Promise(resolve => {
-      dimse.findScu(JSON.stringify(j), result => {
+    return new Promise((resolve) => {
+      dimse.findScu(JSON.stringify(j), (result) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
