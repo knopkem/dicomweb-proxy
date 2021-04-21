@@ -206,7 +206,7 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
           } catch (error) {
             reject(error, result);
           }
-          lock.delete(lockId);
+          // lock.delete(lockId);
         }
       });
     } catch (error) {

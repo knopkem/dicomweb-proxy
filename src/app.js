@@ -3,6 +3,7 @@ const shell = require('shelljs');
 const fs = require('fs');
 const path = require('path');
 const fastify = require('fastify')({ logger: false });
+const throat = require('throat')(config.get('maxAssociations'));
 
 // make sure default directories exist
 shell.mkdir('-p', config.get('logDir'));
@@ -25,7 +26,7 @@ fastify.register(require('fastify-compress'), { global: true });
 const logger = utils.getLogger();
 
 // log exceptions
-process.on('uncaughtException', err => {
+process.on('uncaughtException', (err) => {
   logger.error('uncaught exception received:');
   logger.error(err.stack);
 });
@@ -93,6 +94,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
 
 //------------------------------------------------------------------
 
+
 fastify.get('/viewer/wadouri', async (req, reply) => {
   const fetchLevel = config.get('useFetchLevel');
   const studyUid = req.query.studyUID;
@@ -108,11 +110,14 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
   const storagePath = config.get('storagePath');
   const studyPath = path.join(storagePath, studyUid);
   const pathname = path.join(studyPath, imageUid);
+
   try {
     await utils.fileExists(pathname);
   } catch (error) {
     try {
-      await utils.waitOrFetchData(studyUid, seriesUid, imageUid, fetchLevel);
+      await throat( async () => {
+        await utils.waitOrFetchData(studyUid, seriesUid, imageUid, fetchLevel);
+      } );
     } catch (e) {
       logger.error(e);
       const msg = `fetch failed`;

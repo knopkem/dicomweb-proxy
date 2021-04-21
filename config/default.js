@@ -46,6 +46,8 @@ config.useCget = true;
 // define which level to use for C-Move/C-Get fetches: STUDY, SERIES, IMAGE
 config.useFetchLevel = 'SERIES';
 
+config.maxAssociations = 4;
+
 // how long before deleting cache, 0 for eternity
 config.keepCacheInMinutes = 60;
 
