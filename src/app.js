@@ -3,7 +3,6 @@ const shell = require('shelljs');
 const fs = require('fs');
 const path = require('path');
 const fastify = require('fastify')({ logger: false });
-const throat = require('throat')(config.get('maxAssociations'));
 
 // make sure default directories exist
 shell.mkdir('-p', config.get('logDir'));
@@ -94,7 +93,6 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
 
 //------------------------------------------------------------------
 
-
 fastify.get('/viewer/wadouri', async (req, reply) => {
   const fetchLevel = config.get('useFetchLevel');
   const studyUid = req.query.studyUID;
@@ -115,9 +113,7 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
     await utils.fileExists(pathname);
   } catch (error) {
     try {
-      await throat( async () => {
-        await utils.waitOrFetchData(studyUid, seriesUid, imageUid, fetchLevel);
-      } );
+      await utils.waitOrFetchData(studyUid, seriesUid, imageUid, fetchLevel);
     } catch (e) {
       logger.error(e);
       const msg = `fetch failed`;

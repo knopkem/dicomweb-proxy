@@ -4,6 +4,7 @@ const dimse = require('dicom-dimse-native');
 const storage = require('node-persist');
 const path = require('path');
 const fs = require('fs');
+const throat = require('throat')(config.get('maxAssociations'));
 
 const lock = new Map();
 
@@ -154,11 +155,11 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
   }
 
   if (queryLevel >= QUERY_LEVEL.IMAGE) {
-      j.tags.push({
-        key: '00080018',
-        value: imageUid,
-      });
-    }
+    j.tags.push({
+      key: '00080018',
+      value: imageUid,
+    });
+  }
 
   // set source and target from config
   const ts = config.get('transferSyntax');
@@ -206,7 +207,7 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
           } catch (error) {
             reject(error, result);
           }
-          // lock.delete(lockId);
+          lock.delete(lockId);
         }
       });
     } catch (error) {
@@ -269,14 +270,17 @@ const utils = {
     });
   },
   // fetch and wait
-  waitOrFetchData: (studyUid, seriesUid, imageUid, level) => {
+  waitOrFetchData: async (studyUid, seriesUid, imageUid, level) => {
     const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
 
     // check if already locked and return promise
     if (lock.has(lockId)) {
       return lock.get(lockId);
     }
-    return fetchData(studyUid, seriesUid, imageUid, level);
+
+    return throat(async () => {
+      await fetchData(studyUid, seriesUid, imageUid, level);
+    });
   },
 
   fileExists: (pathname) =>
