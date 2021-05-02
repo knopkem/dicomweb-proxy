@@ -25,9 +25,24 @@ fastify.register(require('fastify-compress'), { global: true });
 const logger = utils.getLogger();
 
 // log exceptions
-process.on('uncaughtException', (err) => {
-  logger.error('uncaught exception received:');
-  logger.error(err.stack);
+process.on('uncaughtException', async (err) => {
+  await logger.error('uncaught exception received:');
+  await logger.error(err.stack);
+});
+
+//------------------------------------------------------------------
+
+process.on('SIGINT', async () => {
+  await logger.info('shutting down web server...');
+  fastify.close().then(async () => {
+    await logger.info('webserver shutdown successfully');
+  }, (err) => {
+    logger.error('webserver shutdown failed', err);
+  })
+  if (!config.get('useCget')) {
+    await logger.info('shutting down DICOM SCP server...');
+    await utils.shutdown();
+  }
 });
 
 //------------------------------------------------------------------
@@ -164,7 +179,7 @@ const port = config.get('webserverPort');
 logger.info('starting...');
 fastify.listen(port, async (err, address) => {
   if (err) {
-    logger.error(err, address);
+    await logger.error(err, address);
     process.exit(1);
   }
   logger.info(`web-server listening on port: ${port}`);
