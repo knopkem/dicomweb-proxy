@@ -24,6 +24,9 @@ const socket = io(websocketUrl, {
   reconnection: true,
   reconnectionDelayMax: 10000,
   autoConnect: false,
+  auth: {
+    token: config.get('websocketToken')
+  }
 });
 
 socket.on('connect', () => {
