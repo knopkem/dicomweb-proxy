@@ -1,14 +1,10 @@
 const config = require('config');
-const shell = require('shelljs');
 const fs = require('fs');
 const path = require('path');
 const fastify = require('fastify')({ logger: false });
+const io = require('socket.io-client');
 
-// make sure default directories exist
-shell.mkdir('-p', config.get('logDir'));
-shell.mkdir('-p', './data');
-
-const utils = require('./utils.js');
+const utils = require('./utils');
 
 fastify.register(require('fastify-static'), {
   root: path.join(__dirname, '../public'),
@@ -24,6 +20,26 @@ fastify.register(require('fastify-compress'), { global: true });
 
 const logger = utils.getLogger();
 
+const socket = io(config.get('websocketUrl'));
+
+socket.on('connect', () => {
+  logger.info('websocket connection established');
+});
+
+socket.on('request', (data) => {
+  logger.info('request received');
+
+  if (data) {
+    socket.emit('response', 'hello');
+  }
+
+});
+
+socket.on('disconnect', () => {
+  logger.info('websocket connection disconnected');
+});
+
+
 // log exceptions
 process.on('uncaughtException', async (err) => {
   await logger.error('uncaught exception received:');
@@ -34,6 +50,7 @@ process.on('uncaughtException', async (err) => {
 
 process.on('SIGINT', async () => {
   await logger.info('shutting down web server...');
+  socket.close();
   fastify.close().then(async () => {
     await logger.info('webserver shutdown successfully');
   }, (err) => {
@@ -43,6 +60,7 @@ process.on('SIGINT', async () => {
     await logger.info('shutting down DICOM SCP server...');
     await utils.shutdown();
   }
+  process.exit(1);
 });
 
 //------------------------------------------------------------------

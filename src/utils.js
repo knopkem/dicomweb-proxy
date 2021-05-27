@@ -1,6 +1,8 @@
 const config = require('config');
 const dict = require('dicom-data-dictionary');
 const dimse = require('dicom-dimse-native');
+const simpleLogger = require('simple-node-logger');
+const shell = require('shelljs');
 const storage = require('node-persist');
 const path = require('path');
 const fs = require('fs');
@@ -8,14 +10,20 @@ const throat = require('throat')(config.get('maxAssociations'));
 
 const lock = new Map();
 
+// make sure default directories exist
+const logDir = config.get('logDir');
+shell.mkdir('-p', logDir);
+shell.mkdir('-p', config.get('storagePath'));
+
+
 // create a rolling file logger based on date/time that fires process events
 const opts = {
   errorEventName: 'error',
-  logDirectory: './logs', // NOTE: folder must exist and be writable...
+  logDirectory: logDir, // NOTE: folder must exist and be writable...
   fileNamePattern: 'roll-<DATE>.log',
   dateFormat: 'YYYY.MM.DD',
 };
-const manager = require('simple-node-logger').createLogManager();
+const manager = simpleLogger.createLogManager();
 // manager.createConsoleAppender();
 manager.createRollingFileAppender(opts);
 const logger = manager.createLogger();

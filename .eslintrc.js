@@ -1,6 +1,6 @@
 module.exports = { 
     "extends": [
-        "airbnb",
+        "airbnb-base",
         "prettier"
     ]
     ,
