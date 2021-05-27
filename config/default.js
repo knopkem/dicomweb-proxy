@@ -60,6 +60,7 @@ config.qidoAppendWildcard = true;
 // enable verbose logging to std::out (contains DIMSE output)
 config.verboseLogging = false;
 
-config.websocketUrl = 'http://localhost:6001';
+// disabled when empty, otherwise use connection url e.g. http://localhost:6001
+config.websocketUrl = '';
 
 module.exports = config;

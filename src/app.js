@@ -20,7 +20,12 @@ fastify.register(require('fastify-compress'), { global: true });
 
 const logger = utils.getLogger();
 
-const socket = io(config.get('websocketUrl'));
+const websocketUrl = config.get('websocketUrl');
+const socket = io(websocketUrl, {
+  reconnection: true,
+  reconnectionDelayMax: 10000,
+  autoConnect: false,
+});
 
 socket.on('connect', () => {
   logger.info('websocket connection established');
@@ -32,13 +37,11 @@ socket.on('request', (data) => {
   if (data) {
     socket.emit('response', 'hello');
   }
-
 });
 
 socket.on('disconnect', () => {
   logger.info('websocket connection disconnected');
 });
-
 
 // log exceptions
 process.on('uncaughtException', async (err) => {
@@ -51,11 +54,14 @@ process.on('uncaughtException', async (err) => {
 process.on('SIGINT', async () => {
   await logger.info('shutting down web server...');
   socket.close();
-  fastify.close().then(async () => {
-    await logger.info('webserver shutdown successfully');
-  }, (err) => {
-    logger.error('webserver shutdown failed', err);
-  })
+  fastify.close().then(
+    async () => {
+      await logger.info('webserver shutdown successfully');
+    },
+    (err) => {
+      logger.error('webserver shutdown failed', err);
+    }
+  );
   if (!config.get('useCget')) {
     await logger.info('shutting down DICOM SCP server...');
     await utils.shutdown();
@@ -209,6 +215,11 @@ fastify.listen(port, async (err, address) => {
     utils.startScp();
   }
   utils.sendEcho();
+
+  if (websocketUrl) {
+    logger.info(`connecting to dicomweb.websocket-bridge: ${websocketUrl}`);
+    socket.connect();
+  }
 });
 
 //------------------------------------------------------------------
