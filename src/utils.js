@@ -15,7 +15,6 @@ const logDir = config.get('logDir');
 shell.mkdir('-p', logDir);
 shell.mkdir('-p', config.get('storagePath'));
 
-
 // create a rolling file logger based on date/time that fires process events
 const opts = {
   errorEventName: 'error',
@@ -230,12 +229,16 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
 //------------------------------------------------------------------
 
 const utils = {
-  getLogger: () => logger,
-  init: async () => {
+  getLogger() {
+    return logger;
+  },
+
+  async init() {
     const persistPath = path.join(config.get('storagePath'), 'persist');
     await storage.init({ dir: persistPath });
   },
-  startScp: () => {
+
+  async startScp() {
     const ts = config.get('transferSyntax');
     const j = {};
     j.source = config.get('source');
@@ -254,7 +257,8 @@ const utils = {
       logger.info(JSON.parse(result));
     });
   },
-  shutdown: () => {
+
+  async shutdown() {
     const j = {};
     j.source = config.get('source');
     j.target = config.get('source');
@@ -277,7 +281,8 @@ const utils = {
       });
     });
   },
-  sendEcho: () => {
+
+  async sendEcho() {
     const j = {};
     j.source = config.get('source');
     j.target = config.get('target');
@@ -300,8 +305,8 @@ const utils = {
       });
     });
   },
-  // fetch and wait
-  waitOrFetchData: async (studyUid, seriesUid, imageUid, level) => {
+
+  async waitOrFetchData(studyUid, seriesUid, imageUid, level) {
     const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
 
     // check if already locked and return promise
@@ -314,8 +319,8 @@ const utils = {
     });
   },
 
-  fileExists: (pathname) =>
-    new Promise((resolve, reject) => {
+  fileExists(pathname) {
+    return new Promise((resolve, reject) => {
       fs.access(pathname, (err) => {
         if (err) {
           reject(err);
@@ -323,8 +328,10 @@ const utils = {
           resolve();
         }
       });
-    }),
-  compressFile: (inputFile, outputDirectory) => {
+    });
+  },
+
+  compressFile(inputFile, outputDirectory) {
     const j = {
       sourcePath: inputFile,
       storagePath: outputDirectory,
@@ -356,48 +363,38 @@ const utils = {
       });
     });
   },
-  studyLevelTags: () => [
-    '00080005',
-    '00080020',
-    '00080030',
-    '00080050',
-    '00080054',
-    '00080056',
-    '00080061',
-    '00080090',
-    '00081190',
-    '00100010',
-    '00100020',
-    '00100030',
-    '00100040',
-    '0020000D',
-    '00200010',
-    '00201206',
-    '00201208',
-  ],
-  seriesLevelTags: () => ['00080005', '00080054', '00080056', '00080060', '0008103E', '00081190', '0020000E', '00200011', '00201209'],
-  imageLevelTags: () => ['00080016', '00080018'],
-  imageMetadataTags: () => [
-    '00080016',
-    '00080018',
-    '00080060',
-    '00280002',
-    '00280004',
-    '00280010',
-    '00280011',
-    '00280030',
-    '00280100',
-    '00280101',
-    '00280102',
-    '00280103',
-    '00281050',
-    '00281051',
-    '00281052',
-    '00281053',
-    '00200032',
-    '00200037',
-  ],
-  doFind: (queryLevel, query, defaults) => {
+
+  studyLevelTags() {
+    return [
+      '00080005',
+      '00080020',
+      '00080030',
+      '00080050',
+      '00080054',
+      '00080056',
+      '00080061',
+      '00080090',
+      '00081190',
+      '00100010',
+      '00100020',
+      '00100030',
+      '00100040',
+      '0020000D',
+      '00200010',
+      '00201206',
+      '00201208',
+    ];
+  },
+
+  seriesLevelTags() {
+    return ['00080005', '00080054', '00080056', '00080060', '0008103E', '00081190', '0020000E', '00200011', '00201209'];
+  },
+
+  imageLevelTags() {
+    return ['00080016', '00080018'];
+  },
+
+  async doFind(queryLevel, query, defaults) {
     // add query retrieve level
     const j = {
       tags: [
@@ -485,6 +482,58 @@ const utils = {
         }
       });
     });
+  },
+  async doWadoUri(query) {
+    const fetchLevel = config.get('useFetchLevel');
+    const studyUid = query.studyUID;
+    const seriesUid = query.seriesUID;
+    const imageUid = query.objectUID;
+    if (!studyUid || !seriesUid || !imageUid) {
+      const msg = `Error missing parameters.`;
+      logger.error(msg);
+      throw msg;
+    }
+    const storagePath = config.get('storagePath');
+    const studyPath = path.join(storagePath, studyUid);
+    const pathname = path.join(studyPath, imageUid);
+
+    try {
+      await utils.fileExists(pathname);
+    } catch (error) {
+      try {
+        await utils.waitOrFetchData(studyUid, seriesUid, imageUid, fetchLevel);
+      } catch (e) {
+        logger.error(e);
+        const msg = `fetch failed`;
+        throw msg;
+      }
+    }
+
+    try {
+      await utils.fileExists(pathname);
+    } catch (error) {
+      logger.error(error);
+      const msg = `file not found ${pathname}`;
+      throw msg;
+    }
+
+    try {
+      await utils.compressFile(pathname, studyPath);
+    } catch (error) {
+      logger.error(error);
+      const msg = `failed to compress ${pathname}`;
+      throw msg;
+    }
+
+    // read file from file system
+    const fsPromise = fs.promises;
+    try {
+      return fsPromise.readFile(pathname);
+    } catch (error) {
+      logger.error(error);
+      const msg = `failed to read ${pathname}`;
+      throw msg;
+    }
   },
 };
 module.exports = utils;

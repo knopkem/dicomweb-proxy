@@ -1,5 +1,4 @@
 const config = require('config');
-const fs = require('fs');
 const path = require('path');
 const fastify = require('fastify')({ logger: false });
 const io = require('socket.io-client');
@@ -31,11 +30,35 @@ socket.on('connect', () => {
   logger.info('websocket connection established');
 });
 
-socket.on('request', (data) => {
-  logger.info('request received');
+socket.on('qido-request', async (data) => {
+  logger.info('websocket qido request received, fetching metadata now...');
 
   if (data) {
-    socket.emit('response', 'hello');
+    let tags = [];
+    if (data.level === 'STUDY') {
+      tags = utils.studyLevelTags();
+    } else if (data.level === 'SERIES') {
+      tags = utils.seriesLevelTags();
+    } else if (data.level === 'IMAGE') {
+      tags = utils.imageLevelTags();
+    }
+    const json = await utils.doFind(data.level, data.query, tags);
+    logger.info('sending websocket response');
+    socket.emit(data.uuid, json);
+  }
+});
+
+socket.on('wadouri-request', async (data) => {
+  logger.info('websocket wadouri request received, fetching metadata now...');
+
+  if (data) {
+    try {
+      const rsp = await utils.doWadoUri(data.query);
+      socket.emit(data.uuid, rsp);
+    } catch (error) {
+      logger.error(error);
+      socket.emit(data.uuid, error);
+    }
   }
 });
 
@@ -133,68 +156,15 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
 //------------------------------------------------------------------
 
 fastify.get('/viewer/wadouri', async (req, reply) => {
-  const fetchLevel = config.get('useFetchLevel');
-  const studyUid = req.query.studyUID;
-  const seriesUid = req.query.seriesUID;
-  const imageUid = req.query.objectUID;
-  if (!studyUid || !seriesUid || !imageUid) {
-    const msg = `Error missing parameters.`;
-    logger.error(msg);
-    reply.code(500);
-    reply.send(msg);
-    return;
-  }
-  const storagePath = config.get('storagePath');
-  const studyPath = path.join(storagePath, studyUid);
-  const pathname = path.join(studyPath, imageUid);
-
   try {
-    await utils.fileExists(pathname);
-  } catch (error) {
-    try {
-      await utils.waitOrFetchData(studyUid, seriesUid, imageUid, fetchLevel);
-    } catch (e) {
-      logger.error(e);
-      const msg = `fetch failed`;
-      reply.code(500);
-      reply.send(msg);
-      return;
-    }
-  }
-
-  try {
-    await utils.fileExists(pathname);
+    const rsp = await utils.doWadoUri(req.query);
+    reply.header('Content-Type', 'application/dicom');
+    reply.send(rsp);
   } catch (error) {
     logger.error(error);
-    const msg = `file not found ${pathname}`;
-    reply.code(500);
-    reply.send(msg);
-    return;
+    reply.setCode(500);
+    reply.send(error);
   }
-
-  try {
-    await utils.compressFile(pathname, studyPath);
-  } catch (error) {
-    logger.error(error);
-    const msg = `failed to compress ${pathname}`;
-    reply.code(500);
-    reply.send(msg);
-    return;
-  }
-
-  // if the file is found, set Content-type and send data
-  reply.header('Content-Type', 'application/dicom');
-
-  // read file from file system
-  fs.readFile(pathname, (err, data) => {
-    if (err) {
-      const msg = `Error getting the file: ${err}.`;
-      logger.error(msg);
-      reply.setCode(500);
-      reply.send(msg);
-    }
-    reply.send(data);
-  });
 });
 
 //------------------------------------------------------------------
