@@ -331,11 +331,11 @@ const utils = {
     });
   },
 
-  compressFile(inputFile, outputDirectory) {
+  compressFile(inputFile, outputDirectory, transferSyntax) {
     const j = {
       sourcePath: inputFile,
       storagePath: outputDirectory,
-      writeTransfer: config.get('transferSyntax'),
+      writeTransfer: transferSyntax || config.get('transferSyntax'),
       verbose: config.get('verboseLogging'),
     };
 
