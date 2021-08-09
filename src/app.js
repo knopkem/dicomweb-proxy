@@ -159,14 +159,32 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
 
   const json = await utils.doFind('IMAGE', query, tags);
 
-  // fetch series
-  logger.info(`fetching series ${query.SeriesInstanceUID}`);
-  await utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, undefined, 'SERIES');
+  // make sure c-find worked
   if (json.length === 0) {
     logger.error('no metadata found');
     reply.setCode(500);
     reply.send(json);
     return;
+  }
+
+  // check if fetch is needed
+  const accessing = [];
+  const fetching = [];
+  for (let i = 0; i < json.length; i += 1) {
+    const sopInstanceUid = json[i]['00080018'].Value[0];
+    const storagePath = config.get('storagePath');
+    const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
+    const accessPromise = utils.fileExists(pathname).catch(() => {
+      fetching.push(utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, undefined, 'SERIES'));
+    });
+    accessing.push(accessPromise);
+  }
+  await Promise.all(accessing);
+
+  if (fetching.length > 0) {
+     // fetch series
+     logger.info(`fetching series ${query.SeriesInstanceUID}`);
+     await fetching[0];
   }
 
   logger.info(`parsing series ${query.SeriesInstanceUID}`);
@@ -261,7 +279,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/inst
     return;
   }
 
-// read file from file system
+  // read file from file system
   try {
     const data = await fs.promises.readFile(pathname);
     const dataset = dicomParser.parseDicom(data);
@@ -294,7 +312,6 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/inst
     reply.send(`Error getting the file: ${error}.`);
   }
 });
-
 
 //------------------------------------------------------------------
 
