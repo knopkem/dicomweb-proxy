@@ -13,6 +13,10 @@ fastify.register(require('fastify-static'), {
   root: path.join(__dirname, '../public'),
 });
 
+fastify.setNotFoundHandler((req, res) => {
+  res.sendFile('index.html')
+})
+
 fastify.register(require('fastify-cors'), {});
 
 fastify.register(require('fastify-sensible'));
