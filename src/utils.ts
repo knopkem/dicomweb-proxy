@@ -7,11 +7,9 @@ import storage from 'node-persist';
 import path from 'path';
 import fs from 'fs';
 import throat from 'throat';
-import { rejects } from 'assert';
 
 const lock = new Map();
 const maxAssociations = config.get('maxAssociations') as number;
-const dictionary = new dict.DataElementDictionary();
 
 // make sure default directories exist
 const logDir = config.get('logDir') as string;
@@ -35,15 +33,13 @@ const QUERY_LEVEL = Object.freeze({ STUDY: 1, SERIES: 2, IMAGE: 3 });
 //------------------------------------------------------------------
 
 const findDicomName = (name: any) => {
-  /*
   // eslint-disable-next-line no-restricted-syntax
-  for (const key of Object.keys(dictionary.standardDataElements)) {
-    const value = dictionary.standardDataElements[key];
+  for (const key of Object.keys(dict.standardDataElements)) {
+    const value = dict.standardDataElements[key];
     if (value.name === name) {
       return key;
     }
   }
-  */
   return undefined;
 };
 
@@ -486,14 +482,11 @@ const utils = {
 
     // run find scu and return json response
     return new Promise((resolve) => {
-
       // return with empty results if invalid
       if (invalidInput) {
         resolve([]);
       }
-      console.log(j);
       dimse.findScu(JSON.stringify(j), (result: any) => {
-        console.log('result received');
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
