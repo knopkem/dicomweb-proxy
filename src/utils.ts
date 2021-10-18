@@ -8,6 +8,9 @@ import path from 'path';
 import fs from 'fs';
 import throat from 'throat';
 
+const maxAssociations = config.get('maxAssociations') as number;
+const throatLock = throat(maxAssociations);
+
 interface KeyValue {
   key: string;
   value: string;
@@ -33,7 +36,6 @@ class DIMSERequest {
 }
 
 const lock = new Map<string, Promise<any>>();
-const maxAssociations = config.get('maxAssociations') as number;
 
 // make sure default directories exist
 const logDir = config.get('logDir') as string;
@@ -323,12 +325,7 @@ const utils = {
     if (lock.has(lockId)) {
       return lock.get(lockId);
     }
-    await fetchData(studyUid, seriesUid, imageUid, level);
-    /*
-    return throat(maxAssociations, async () => {
-      await fetchData(studyUid, seriesUid, imageUid, level);
-    });
-    */
+    return await throatLock(async () => await fetchData(studyUid, seriesUid, imageUid, level));
   },
 
   fileExists(pathname: string): Promise<boolean> {
