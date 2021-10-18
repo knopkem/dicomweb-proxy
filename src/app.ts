@@ -169,7 +169,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
     const storagePath = config.get('storagePath') as string;
     const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
     const accessPromise = utils.fileExists(pathname).catch(() => {
-      fetching.push(utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, undefined, 'SERIES'));
+      fetching.push(utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, '', 'SERIES'));
     });
     accessing.push(accessPromise);
   }

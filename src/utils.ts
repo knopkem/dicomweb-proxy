@@ -28,11 +28,15 @@ const manager = simpleLogger.createLogManager();
 manager.createRollingFileAppender(opts);
 const logger = manager.createLogger();
 
-const QUERY_LEVEL = Object.freeze({ STUDY: 1, SERIES: 2, IMAGE: 3 });
+enum QUERY_LEVEL {
+  STUDY = 1,
+  SERIES = 2,
+  IMAGE = 3,
+}
 
 //------------------------------------------------------------------
 
-const findDicomName = (name: any) => {
+const findDicomName = (name: string) => {
   // eslint-disable-next-line no-restricted-syntax
   for (const key of Object.keys(dict.standardDataElements)) {
     const value = dict.standardDataElements[key];
@@ -46,58 +50,42 @@ const findDicomName = (name: any) => {
 //------------------------------------------------------------------
 
 // helper to add minutes to date object
-const addMinutes = (date: any, minutes: any) => {
+const addMinutes = (date: Date, minutes: number) => {
   const ms = date.getTime() + minutes * 60000;
-  return new Date(parseInt(ms, 10));
+  return new Date(ms);
 };
 
 //------------------------------------------------------------------
 
-const getLockUid = (studyUid: any, seriesUid: any, imageUid: any, level: any) => {
+const getLockUid = (studyUid: string, seriesUid: string, imageUid: string, level: string) => {
   if (level === 'STUDY') return studyUid;
   if (level === 'SERIES') return seriesUid;
   if (level === 'IMAGE') return imageUid;
 
-  logger.warn('getLockUid, level not found: ', level);
-  return seriesUid;
+  logger.warn('level not found: ', level);
+  return studyUid;
 };
 
 //------------------------------------------------------------------
 
-const getQueryLevel = (level: any) => {
+const getQuerLevel = (level: string) => {
   if (level === 'STUDY') return QUERY_LEVEL.STUDY;
   if (level === 'SERIES') return QUERY_LEVEL.SERIES;
   if (level === 'IMAGE') return QUERY_LEVEL.IMAGE;
 
-  logger.warn('getQueryLevel, level not found: ', level);
-  return QUERY_LEVEL.SERIES;
-};
+  logger.warn('level not found: ', level);
+  return QUERY_LEVEL.STUDY;
+}
 
 //------------------------------------------------------------------
 
-const queryLevelToString = (qlevel: any) => {
+const queryLevelToPath = (studyUid: any, seriesUid: any, imageUid: any, qlevel: QUERY_LEVEL) => {
   switch (qlevel) {
-    case 1:
-      return 'STUDY';
-    case 2:
-      return 'SERIES';
-    case 3:
-      return 'IMAGE';
-    default:
-      logger.warn('queryLevelToString, level not found: ', qlevel);
-      return 'SERIES';
-  }
-};
-
-//------------------------------------------------------------------
-
-const queryLevelToPath = (studyUid: any, seriesUid: any, imageUid: any, qlevel: any) => {
-  switch (qlevel) {
-    case 1:
+    case QUERY_LEVEL.STUDY:
       return studyUid;
-    case 2:
+    case QUERY_LEVEL.SERIES:
       return `${studyUid}/${seriesUid}`;
-    case 3:
+    case QUERY_LEVEL.IMAGE:
       return `${studyUid}/${seriesUid}/${imageUid}`;
     default:
       logger.warn('queryLevelToPath, level not found: ', qlevel);
@@ -136,17 +124,16 @@ const clearCache = (storagePath: any, currentUid: any) => {
 //------------------------------------------------------------------
 
 // request data from PACS via c-get or c-move
-const fetchData = async (studyUid: any, seriesUid: any, imageUid: any, level: any) => {
+const fetchData = async (studyUid: string, seriesUid: string, imageUid: string, level: string) => {
   const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
-  const queryLevel = getQueryLevel(level);
-  const queryLevelString = queryLevelToString(queryLevel);
+  const queryLevel = getQuerLevel(level);
 
   // add query retrieve level and fetch whole study
   const j = {
     tags: [
       {
         key: '00080052',
-        value: queryLevelString,
+        value: level,
       },
       {
         key: '0020000D',
@@ -239,7 +226,7 @@ const fetchData = async (studyUid: any, seriesUid: any, imageUid: any, level: an
 //------------------------------------------------------------------
 
 const utils = {
-  getLogger() {
+  getLogger(): simpleLogger.Logger {
     return logger;
   },
 
@@ -334,7 +321,7 @@ const utils = {
     });
   },
 
-  async waitOrFetchData(studyUid: any, seriesUid: any, imageUid: any, level: any) {
+  async waitOrFetchData(studyUid: string, seriesUid: string, imageUid: string, level: string) {
     const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
 
     // check if already locked and return promise
@@ -347,7 +334,7 @@ const utils = {
     });
   },
 
-  fileExists(pathname: any) {
+  fileExists(pathname: string) {
     return new Promise((resolve, reject) => {
       fs.access(pathname, (err: any) => {
         if (err) {
@@ -359,7 +346,7 @@ const utils = {
     });
   },
 
-  compressFile(inputFile: any, outputDirectory: any, transferSyntax: any) {
+  compressFile(inputFile: string, outputDirectory: string, transferSyntax: string | undefined) {
     const j = {
       sourcePath: inputFile,
       storagePath: outputDirectory,
@@ -422,7 +409,7 @@ const utils = {
     return ['00080016', '00080018'];
   },
 
-  async doFind(queryLevel: string, query: any, defaults: any): Promise<any> {
+  async doFind(queryLevel: string, query: any, defaults: string[]): Promise<any> {
     // add query retrieve level
     const j = {
       tags: [
@@ -444,7 +431,7 @@ const utils = {
     // parse all include fields
     const includes = query.includefield;
 
-    let tags = [];
+    let tags = new Array<string>();
     if (includes) {
       tags = includes.split(',');
     }
@@ -516,10 +503,10 @@ const utils = {
     });
   },
   async doWadoUri(query: any) {
-    const fetchLevel = config.get('useFetchLevel');
-    const studyUid = query.studyUID;
-    const seriesUid = query.seriesUID;
-    const imageUid = query.objectUID;
+    const fetchLevel = config.get('useFetchLevel') as string;
+    const studyUid = query.studyUID as string;
+    const seriesUid = query.seriesUID as string;
+    const imageUid = query.objectUID as string;
     if (!studyUid || !seriesUid || !imageUid) {
       const msg = `Error missing parameters.`;
       logger.error(msg);
@@ -550,7 +537,7 @@ const utils = {
     }
 
     try {
-      await utils.compressFile(pathname, studyPath, null);
+      await utils.compressFile(pathname, studyPath, undefined);
     } catch (error) {
       logger.error(error);
       const msg = `failed to compress ${pathname}`;
