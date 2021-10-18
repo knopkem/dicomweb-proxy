@@ -6,26 +6,20 @@ import io from 'socket.io-client';
 import crypto from 'crypto';
 import { Readable } from 'stream';
 import dicomParser from 'dicom-parser';
-
 import utils from './utils';
+const logger = utils.getLogger();
 
 const server = fastify();
-
 server.register(require('fastify-static'), {
-  root: path.join(__dirname, '../public'),
-});
+  root: path.join(__dirname, '../public'),});
 
 server.setNotFoundHandler((req: any, res: any) => {
   res.sendFile('index.html');
 });
-
 server.register(require('fastify-cors'), {});
-
 server.register(require('fastify-sensible'));
-
 server.register(require('fastify-helmet'), { contentSecurityPolicy: false });
 
-const logger = utils.getLogger();
 
 const websocketUrl = config.get('websocketUrl') as string;
 const socket = io(websocketUrl, {
@@ -86,18 +80,16 @@ process.on('uncaughtException', async (err) => {
 //------------------------------------------------------------------
 
 process.on('SIGINT', async () => {
-  await logger.info('shutting down web server...');
-  socket.close();
-  server.close().then(
-    async () => {
-      await logger.info('webserver shutdown successfully');
-    },
-    (err: any) => {
-      logger.error('webserver shutdown failed', err);
-    }
-  );
+  try {
+    await server.close();
+    await socket.close();
+  } catch (error) {
+    logger.error(error);
+  }
+  logger.info('shutting down web server...');
+  logger.info('webserver shutdown successfully');
   if (!config.get('useCget')) {
-    await logger.info('shutting down DICOM SCP server...');
+    logger.info('shutting down DICOM SCP server...');
     await utils.shutdown();
   }
   process.exit(1);
@@ -250,6 +242,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
   await Promise.all(parsing);
 
   reply.send(json);
+
 });
 
 //------------------------------------------------------------------

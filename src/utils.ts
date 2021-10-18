@@ -426,7 +426,7 @@ const utils = {
     return ['00080016', '00080018'];
   },
 
-  async doFind(queryLevel: any, query: any, defaults: any): Promise<any> {
+  async doFind(queryLevel: string, query: any, defaults: any): Promise<any> {
     // add query retrieve level
     const j = {
       tags: [
@@ -461,7 +461,7 @@ const utils = {
     });
 
     // add search param
-    let isValidInput = false;
+    let invalidInput = false;
     const minCharsQido = config.get('qidoMinChars') as string;
     Object.keys(query).forEach((propName) => {
       const tag = findDicomName(propName);
@@ -471,7 +471,7 @@ const utils = {
         if (tag === '00100010') {
           // check if minimum number of chars for patient name are given
           if (minCharsQido > v.length) {
-            isValidInput = true;
+            invalidInput = true;
           }
           // auto append wildcard
           if (config.get('qidoAppendWildcard')) {
@@ -488,11 +488,12 @@ const utils = {
     return new Promise((resolve) => {
 
       // return with empty results if invalid
-      if (isValidInput) {
+      if (invalidInput) {
         resolve([]);
       }
-
+      console.log(j);
       dimse.findScu(JSON.stringify(j), (result: any) => {
+        console.log('result received');
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
