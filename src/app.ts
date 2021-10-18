@@ -1,34 +1,33 @@
-const config = require('config');
-const fs = require('fs');
-const path = require('path');
-const fastify = require('fastify')({ logger: false });
-const io = require('socket.io-client');
-const dicomParser = require('dicom-parser');
-const crypto = require('crypto');
-const { Readable } = require('stream');
+import config from 'config';
+import fs from 'fs';
+import path from 'path';
+import fastify from 'fastify';
+import io from 'socket.io-client';
+import crypto from 'crypto';
+import { Readable } from 'stream';
+import dicomParser from 'dicom-parser';
 
-const utils = require('./utils');
+import utils from './utils';
 
-fastify.register(require('fastify-static'), {
+const server = fastify();
+
+server.register(require('fastify-static'), {
   root: path.join(__dirname, '../public'),
 });
 
-fastify.setNotFoundHandler((req, res) => {
-  res.sendFile('index.html')
-})
+server.setNotFoundHandler((req: any, res: any) => {
+  res.sendFile('index.html');
+});
 
-fastify.register(require('fastify-cors'), {});
+server.register(require('fastify-cors'), {});
 
-fastify.register(require('fastify-sensible'));
+server.register(require('fastify-sensible'));
 
-fastify.register(require('fastify-helmet'), { contentSecurityPolicy: false });
-
-// TOO SLOW
-// fastify.register(require('fastify-compress'), { global: true });
+server.register(require('fastify-helmet'), { contentSecurityPolicy: false });
 
 const logger = utils.getLogger();
 
-const websocketUrl = config.get('websocketUrl');
+const websocketUrl = config.get('websocketUrl') as string;
 const socket = io(websocketUrl, {
   reconnection: true,
   reconnectionDelayMax: 10000,
@@ -42,11 +41,11 @@ socket.on('connect', () => {
   logger.info('websocket connection established');
 });
 
-socket.on('qido-request', async (data) => {
+socket.on('qido-request', async (data: any) => {
   logger.info('websocket qido request received, fetching metadata now...');
 
   if (data) {
-    let tags = [];
+    let tags = new Array<any>();
     if (data.level === 'STUDY') {
       tags = utils.studyLevelTags();
     } else if (data.level === 'SERIES') {
@@ -60,7 +59,7 @@ socket.on('qido-request', async (data) => {
   }
 });
 
-socket.on('wadouri-request', async (data) => {
+socket.on('wadouri-request', async (data: any) => {
   logger.info('websocket wadouri request received, fetching metadata now...');
 
   if (data) {
@@ -89,11 +88,11 @@ process.on('uncaughtException', async (err) => {
 process.on('SIGINT', async () => {
   await logger.info('shutting down web server...');
   socket.close();
-  fastify.close().then(
+  server.close().then(
     async () => {
       await logger.info('webserver shutdown successfully');
     },
-    (err) => {
+    (err: any) => {
       logger.error('webserver shutdown failed', err);
     }
   );
@@ -106,7 +105,7 @@ process.on('SIGINT', async () => {
 
 //------------------------------------------------------------------
 
-fastify.get('/viewer/rs/studies', async (req, reply) => {
+server.get('/viewer/rs/studies', async (req: any, reply: any) => {
   const tags = utils.studyLevelTags();
   const json = await utils.doFind('STUDY', req.query, tags);
   reply.send(json);
@@ -114,7 +113,7 @@ fastify.get('/viewer/rs/studies', async (req, reply) => {
 
 //------------------------------------------------------------------
 
-fastify.get('/rs/studies', async (req, reply) => {
+server.get('/rs/studies', async (req: any, reply: any) => {
   const tags = utils.studyLevelTags();
   const json = await utils.doFind('STUDY', req.query, tags);
   reply.send(json);
@@ -122,7 +121,7 @@ fastify.get('/rs/studies', async (req, reply) => {
 
 //------------------------------------------------------------------
 
-fastify.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req, reply) => {
+server.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req: any, reply: any) => {
   const { query } = req;
   query.StudyInstanceUID = req.params.studyInstanceUid;
   const tags = utils.seriesLevelTags();
@@ -132,7 +131,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req, reply) 
 
 //------------------------------------------------------------------
 
-fastify.get('/viewer/rs/studies/:studyInstanceUid/series', async (req, reply) => {
+server.get('/viewer/rs/studies/:studyInstanceUid/series', async (req: any, reply: any) => {
   const tags = utils.seriesLevelTags();
   const { query } = req;
   query.StudyInstanceUID = req.params.studyInstanceUid;
@@ -143,7 +142,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series', async (req, reply) =>
 
 //------------------------------------------------------------------
 
-fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req, reply) => {
+server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req: any, reply: any) => {
   const tags = utils.imageLevelTags();
   const { query } = req;
   query.StudyInstanceUID = req.params.studyInstanceUid;
@@ -155,7 +154,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/inst
 
 //------------------------------------------------------------------
 
-fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req, reply) => {
+server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
   const tags = utils.imageLevelTags();
   const { query } = req;
   query.StudyInstanceUID = req.params.studyInstanceUid;
@@ -173,10 +172,10 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
 
   // check if fetch is needed
   const accessing = [];
-  const fetching = [];
+  const fetching: any = [];
   for (let i = 0; i < json.length; i += 1) {
     const sopInstanceUid = json[i]['00080018'].Value[0];
-    const storagePath = config.get('storagePath');
+    const storagePath = config.get('storagePath') as string;
     const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
     const accessPromise = utils.fileExists(pathname).catch(() => {
       fetching.push(utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, undefined, 'SERIES'));
@@ -186,22 +185,22 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
   await Promise.all(accessing);
 
   if (fetching.length > 0) {
-     // fetch series
-     logger.info(`fetching series ${query.SeriesInstanceUID}`);
-     await fetching[0];
+    // fetch series
+    logger.info(`fetching series ${query.SeriesInstanceUID}`);
+    await fetching[0];
   }
 
   logger.info(`parsing series ${query.SeriesInstanceUID}`);
   const reading = [];
-  const parsing = [];
+  const parsing: any = [];
   for (let i = 0; i < json.length; i += 1) {
     const sopInstanceUid = json[i]['00080018'].Value[0];
-    const storagePath = config.get('storagePath');
+    const storagePath = config.get('storagePath') as string;
     const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
 
     const readPromise = fs.promises.readFile(pathname);
     reading.push(readPromise);
-    readPromise.then((data) => {
+    readPromise.then((data: any) => {
       const dataset = dicomParser.parseDicom(data);
 
       // parse additional needed attributes
@@ -211,7 +210,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
       const rows = dataset.uint16('x00280010');
       const cols = dataset.uint16('x00280011');
       const pixelSpacingString = dataset.string('x00280030');
-      const pixelSpacing = pixelSpacingString ? pixelSpacingString.split('\\').map((e) => parseFloat(e)) : [1, 1];
+      const pixelSpacing = pixelSpacingString ? pixelSpacingString.split('\\').map((e: any) => parseFloat(e)) : [1, 1];
       const modality = dataset.string('x00080060');
       const samplesPerPixel = dataset.uint16('x00280002');
       const photometricInterpretation = dataset.string('x00280004');
@@ -223,9 +222,9 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
       const rescaleIntercept = parseFloat(dataset.string('x00281052'));
       const rescaleSlope = parseFloat(dataset.string('x00281053'));
       const iopString = dataset.string('x00200037');
-      const iop = iopString ? iopString.split('\\').map((e) => parseFloat(e)) : null;
+      const iop = iopString ? iopString.split('\\').map((e: any) => parseFloat(e)) : null;
       const ippString = dataset.string('x00200032');
-      const ipp = ippString ? ippString.split('\\').map((e) => parseFloat(e)) : null;
+      const ipp = ippString ? ippString.split('\\').map((e: any) => parseFloat(e)) : null;
 
       // append to all results
 
@@ -256,10 +255,10 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/meta
 
 //------------------------------------------------------------------
 
-fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req, reply) => {
+server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req: any, reply: any) => {
   const { studyInstanceUid, sopInstanceUid } = req.params;
 
-  const storagePath = config.get('storagePath');
+  const storagePath = config.get('storagePath') as string;
   const studyPath = path.join(storagePath, studyInstanceUid);
   const pathname = path.join(studyPath, sopInstanceUid);
 
@@ -319,7 +318,7 @@ fastify.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/inst
 
 //------------------------------------------------------------------
 
-fastify.get('/viewer/wadouri', async (req, reply) => {
+server.get('/viewer/wadouri', async (req: any, reply: any) => {
   try {
     const rsp = await utils.doWadoUri(req.query);
     reply.header('Content-Type', 'application/dicom');
@@ -333,9 +332,9 @@ fastify.get('/viewer/wadouri', async (req, reply) => {
 
 //------------------------------------------------------------------
 
-const port = config.get('webserverPort');
+const port = config.get('webserverPort') as number;
 logger.info('starting...');
-fastify.listen(port, '0.0.0.0', async (err, address) => {
+server.listen(port, '0.0.0.0', async (err: any, address: any) => {
   if (err) {
     await logger.error(err, address);
     process.exit(1);

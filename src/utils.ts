@@ -1,17 +1,18 @@
-const config = require('config');
-const dict = require('dicom-data-dictionary');
-const dimse = require('dicom-dimse-native');
-const simpleLogger = require('simple-node-logger');
-const shell = require('shelljs');
-const storage = require('node-persist');
-const path = require('path');
-const fs = require('fs');
-const throat = require('throat')(config.get('maxAssociations'));
+import config from 'config';
+import dict from 'dicom-data-dictionary';
+import dimse from 'dicom-dimse-native';
+import simpleLogger from 'simple-node-logger';
+import shell from 'shelljs';
+import storage from 'node-persist';
+import path from 'path';
+import fs from 'fs';
+import throat from 'throat';
 
 const lock = new Map();
+const maxAssociations = config.get('maxAssociations') as number;
 
 // make sure default directories exist
-const logDir = config.get('logDir');
+const logDir = config.get('logDir') as string;
 shell.mkdir('-p', logDir);
 shell.mkdir('-p', config.get('storagePath'));
 
@@ -31,7 +32,7 @@ const QUERY_LEVEL = Object.freeze({ STUDY: 1, SERIES: 2, IMAGE: 3 });
 
 //------------------------------------------------------------------
 
-const findDicomName = (name) => {
+const findDicomName = (name: any) => {
   // eslint-disable-next-line no-restricted-syntax
   for (const key of Object.keys(dict.standardDataElements)) {
     const value = dict.standardDataElements[key];
@@ -45,14 +46,14 @@ const findDicomName = (name) => {
 //------------------------------------------------------------------
 
 // helper to add minutes to date object
-const addMinutes = (date, minutes) => {
+const addMinutes = (date: any, minutes: any) => {
   const ms = date.getTime() + minutes * 60000;
   return new Date(parseInt(ms, 10));
 };
 
 //------------------------------------------------------------------
 
-const getLockUid = (studyUid, seriesUid, imageUid, level) => {
+const getLockUid = (studyUid: any, seriesUid: any, imageUid: any, level: any) => {
   if (level === 'STUDY') return studyUid;
   if (level === 'SERIES') return seriesUid;
   if (level === 'IMAGE') return imageUid;
@@ -63,7 +64,7 @@ const getLockUid = (studyUid, seriesUid, imageUid, level) => {
 
 //------------------------------------------------------------------
 
-const getQueryLevel = (level) => {
+const getQueryLevel = (level: any) => {
   if (level === 'STUDY') return QUERY_LEVEL.STUDY;
   if (level === 'SERIES') return QUERY_LEVEL.SERIES;
   if (level === 'IMAGE') return QUERY_LEVEL.IMAGE;
@@ -74,7 +75,7 @@ const getQueryLevel = (level) => {
 
 //------------------------------------------------------------------
 
-const queryLevelToString = (qlevel) => {
+const queryLevelToString = (qlevel: any) => {
   switch (qlevel) {
     case 1:
       return 'STUDY';
@@ -90,7 +91,7 @@ const queryLevelToString = (qlevel) => {
 
 //------------------------------------------------------------------
 
-const queryLevelToPath = (studyUid, seriesUid, imageUid, qlevel) => {
+const queryLevelToPath = (studyUid: any, seriesUid: any, imageUid: any, qlevel: any) => {
   switch (qlevel) {
     case 1:
       return studyUid;
@@ -107,9 +108,9 @@ const queryLevelToPath = (studyUid, seriesUid, imageUid, qlevel) => {
 //------------------------------------------------------------------
 
 // remove cached data if outdated
-const clearCache = (storagePath, currentUid) => {
+const clearCache = (storagePath: any, currentUid: any) => {
   const currentDate = new Date();
-  storage.forEach((item) => {
+  storage.forEach((item: any) => {
     const dt = new Date(item.value);
     const directory = path.join(storagePath, item.key);
     if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
@@ -119,7 +120,7 @@ const clearCache = (storagePath, currentUid) => {
         {
           recursive: true,
         },
-        (error) => {
+        (error: any) => {
           if (error) {
             logger.error(error);
           } else {
@@ -135,7 +136,7 @@ const clearCache = (storagePath, currentUid) => {
 //------------------------------------------------------------------
 
 // request data from PACS via c-get or c-move
-const fetchData = async (studyUid, seriesUid, imageUid, level) => {
+const fetchData = async (studyUid: any, seriesUid: any, imageUid: any, level: any) => {
   const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
   const queryLevel = getQueryLevel(level);
   const queryLevelString = queryLevelToString(queryLevel);
@@ -170,23 +171,31 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
 
   // set source and target from config
   const ts = config.get('transferSyntax');
+  // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPrefer' does not exist on typ... Remove this comment to see the full error message
   j.netTransferPrefer = ts;
+  // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPropose' does not exist on ty... Remove this comment to see the full error message
   j.netTransferPropose = ts;
+  // @ts-expect-error ts-migrate(2339) FIXME: Property 'writeTransfer' does not exist on type '{... Remove this comment to see the full error message
   j.writeTransfer = ts;
+  // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{ tags: ... Remove this comment to see the full error message
   j.source = config.get('source');
+  // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{ tags: ... Remove this comment to see the full error message
   j.target = config.get('target');
+  // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{ tags:... Remove this comment to see the full error message
   j.verbose = config.get('verboseLogging');
+  // @ts-expect-error ts-migrate(2339) FIXME: Property 'storagePath' does not exist on type '{ t... Remove this comment to see the full error message
   j.storagePath = config.get('storagePath');
 
   const scu = config.get('useCget') ? dimse.getScu : dimse.moveScu;
   const uidPath = queryLevelToPath(studyUid, seriesUid, imageUid, queryLevel);
-  const cacheTime = config.get('keepCacheInMinutes');
+  const cacheTime = config.get('keepCacheInMinutes') as number;
 
   const prom = new Promise((resolve, reject) => {
     try {
       logger.info(`fetch start: ${uidPath}`);
+      // @ts-expect-error ts-migrate(2339) FIXME: Property 'storagePath' does not exist on type '{ t... Remove this comment to see the full error message
       clearCache(j.storagePath, studyUid);
-      scu(JSON.stringify(j), (result) => {
+      scu(JSON.stringify(j), (result: any) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
@@ -194,7 +203,7 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
               logger.info(`fetch finished: ${uidPath}`);
               storage
                 .getItem(studyUid)
-                .then((item) => {
+                .then((item: any) => {
                   if (!item) {
                     if (cacheTime >= 0) {
                       const minutes = addMinutes(new Date(), cacheTime);
@@ -204,7 +213,7 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
                     }
                   }
                 })
-                .catch((e) => {
+                .catch((e: any) => {
                   logger.error(e);
                 });
               resolve(result);
@@ -212,6 +221,7 @@ const fetchData = async (studyUid, seriesUid, imageUid, level) => {
               logger.info(JSON.parse(result));
             }
           } catch (error) {
+            // @ts-expect-error ts-migrate(2554) FIXME: Expected 0-1 arguments, but got 2.
             reject(error, result);
           }
           lock.delete(lockId);
@@ -241,18 +251,27 @@ const utils = {
   async startScp() {
     const ts = config.get('transferSyntax');
     const j = {};
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
     j.source = config.get('source');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'storagePath' does not exist on type '{}'... Remove this comment to see the full error message
     j.storagePath = config.get('storagePath');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{}'.
     j.verbose = config.get('verboseLogging');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPrefer' does not exist on typ... Remove this comment to see the full error message
     j.netTransferPrefer = ts;
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPropose' does not exist on ty... Remove this comment to see the full error message
     j.netTransferPropose = ts;
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'writeTransfer' does not exist on type '{... Remove this comment to see the full error message
     j.writeTransfer = ts;
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'peers' does not exist on type '{}'.
     j.peers = [config.get('target')];
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'permissive' does not exist on type '{}'.
     j.permissive = true;
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
     logger.info(`pacs-server listening on port: ${j.source.port}`);
 
-    dimse.startScp(JSON.stringify(j), (result) => {
+    dimse.startScp(JSON.stringify(j), (result: any) => {
       // currently this will never finish
       logger.info(JSON.parse(result));
     });
@@ -260,17 +279,22 @@ const utils = {
 
   async shutdown() {
     const j = {};
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
     j.source = config.get('source');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
     j.target = config.get('source');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{}'.
     j.verbose = config.get('verboseLogging');
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
     logger.info(`sending shutdown request to target: ${j.target.aet}`);
 
     return new Promise((resolve, reject) => {
-      dimse.shutdownScu(JSON.stringify(j), (result) => {
+      dimse.shutdownScu(JSON.stringify(j), (result: any) => {
         if (result && result.length > 0) {
           try {
             logger.info(JSON.parse(result));
+            // @ts-expect-error ts-migrate(2794) FIXME: Expected 1 arguments, but got 0. Did you forget to... Remove this comment to see the full error message
             resolve();
           } catch (error) {
             logger.error(result);
@@ -284,21 +308,25 @@ const utils = {
 
   async sendEcho() {
     const j = {};
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
     j.source = config.get('source');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
     j.target = config.get('target');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{}'.
     j.verbose = config.get('verboseLogging');
 
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
     logger.info(`sending C-ECHO to target: ${j.target.aet}`);
 
     return new Promise((resolve, reject) => {
-      dimse.echoScu(JSON.stringify(j), (result) => {
+      dimse.echoScu(JSON.stringify(j), (result: any) => {
         if (result && result.length > 0) {
           try {
             logger.info(JSON.parse(result));
-            resolve();
+            resolve(true);
           } catch (error) {
             logger.error(result);
-            reject();
+            reject(error);
           }
         }
         reject();
@@ -306,7 +334,7 @@ const utils = {
     });
   },
 
-  async waitOrFetchData(studyUid, seriesUid, imageUid, level) {
+  async waitOrFetchData(studyUid: any, seriesUid: any, imageUid: any, level: any) {
     const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
 
     // check if already locked and return promise
@@ -314,24 +342,24 @@ const utils = {
       return lock.get(lockId);
     }
 
-    return throat(async () => {
+    return throat(maxAssociations, async () => {
       await fetchData(studyUid, seriesUid, imageUid, level);
     });
   },
 
-  fileExists(pathname) {
+  fileExists(pathname: any) {
     return new Promise((resolve, reject) => {
-      fs.access(pathname, (err) => {
+      fs.access(pathname, (err: any) => {
         if (err) {
           reject(err);
         } else {
-          resolve();
+          resolve(true);
         }
       });
     });
   },
 
-  compressFile(inputFile, outputDirectory, transferSyntax) {
+  compressFile(inputFile: any, outputDirectory: any, transferSyntax: any) {
     const j = {
       sourcePath: inputFile,
       storagePath: outputDirectory,
@@ -341,12 +369,12 @@ const utils = {
 
     // run find scu and return json response
     return new Promise((resolve, reject) => {
-      dimse.recompress(JSON.stringify(j), (result) => {
+      dimse.recompress(JSON.stringify(j), (result: any) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
             if (json.code === 0) {
-              resolve();
+              resolve(true);
             } else {
               logger.error(`recompression failure (${inputFile}): ${json.message}`);
               reject();
@@ -394,7 +422,7 @@ const utils = {
     return ['00080016', '00080018'];
   },
 
-  async doFind(queryLevel, query, defaults) {
+  async doFind(queryLevel: any, query: any, defaults: any): Promise<any> {
     // add query retrieve level
     const j = {
       tags: [
@@ -406,8 +434,11 @@ const utils = {
     };
 
     // set source and target from config
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{ tags: ... Remove this comment to see the full error message
     j.source = config.get('source');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{ tags: ... Remove this comment to see the full error message
     j.target = config.get('target');
+    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{ tags:... Remove this comment to see the full error message
     j.verbose = config.get('verboseLogging');
 
     // parse all include fields
@@ -420,13 +451,14 @@ const utils = {
     tags.push(...defaults);
 
     // add parsed tags
-    tags.forEach((element) => {
+    tags.forEach((element: any) => {
       const tagName = findDicomName(element) || element;
       j.tags.push({ key: tagName, value: '' });
     });
 
     // add search param
     let isValidInput = false;
+    const minCharsQido = config.get('qidoMinChars') as string;
     Object.keys(query).forEach((propName) => {
       const tag = findDicomName(propName);
       if (tag) {
@@ -434,7 +466,7 @@ const utils = {
         // patient name check
         if (tag === '00100010') {
           // check if minimum number of chars for patient name are given
-          if (config.get('qidoMinChars') > v.length) {
+          if (minCharsQido > v.length) {
             isValidInput = true;
           }
           // auto append wildcard
@@ -454,7 +486,7 @@ const utils = {
 
     // run find scu and return json response
     return new Promise((resolve) => {
-      dimse.findScu(JSON.stringify(j), (result) => {
+      dimse.findScu(JSON.stringify(j), (result: any) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
@@ -483,7 +515,7 @@ const utils = {
       });
     });
   },
-  async doWadoUri(query) {
+  async doWadoUri(query: any) {
     const fetchLevel = config.get('useFetchLevel');
     const studyUid = query.studyUID;
     const seriesUid = query.seriesUID;
@@ -493,7 +525,7 @@ const utils = {
       logger.error(msg);
       throw msg;
     }
-    const storagePath = config.get('storagePath');
+    const storagePath = config.get('storagePath') as string;
     const studyPath = path.join(storagePath, studyUid);
     const pathname = path.join(studyPath, imageUid);
 
@@ -518,7 +550,7 @@ const utils = {
     }
 
     try {
-      await utils.compressFile(pathname, studyPath);
+      await utils.compressFile(pathname, studyPath, null);
     } catch (error) {
       logger.error(error);
       const msg = `failed to compress ${pathname}`;
@@ -536,4 +568,5 @@ const utils = {
     }
   },
 };
-module.exports = utils;
+
+export default utils;
