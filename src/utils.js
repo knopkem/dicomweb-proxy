@@ -114,7 +114,7 @@ const clearCache = (storagePath, currentUid) => {
     const directory = path.join(storagePath, item.key);
     if (dt.getTime() < currentDate.getTime() && item.key !== currentUid) {
       logger.info(`cleaning directory: ${directory}`);
-      fs.rmdir(
+      fs.rm(
         directory,
         {
           recursive: true,
@@ -426,7 +426,7 @@ const utils = {
     });
 
     // add search param
-    let isValidInput = false;
+    let isInValidInput = false;
     Object.keys(query).forEach((propName) => {
       const tag = findDicomName(propName);
       if (tag) {
@@ -434,8 +434,8 @@ const utils = {
         // patient name check
         if (tag === '00100010') {
           // check if minimum number of chars for patient name are given
-          if (config.get('qidoMinChars') > v.length) {
-            isValidInput = true;
+          if (v.length < config.get('qidoMinChars')) {
+            isInValidInput = true;
           }
           // auto append wildcard
           if (config.get('qidoAppendWildcard')) {
@@ -446,7 +446,7 @@ const utils = {
       }
     });
     // return with empty results if invalid
-    if (isValidInput) {
+    if (isInValidInput) {
       return [];
     }
 
