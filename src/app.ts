@@ -114,8 +114,8 @@ server.get('/rs/studies', async (req: any, reply: any) => {
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req: any, reply: any) => {
-  const { query } = req;
-  query.StudyInstanceUID = req.params.studyInstanceUid;
+  const { query, params } = req;
+  query.StudyInstanceUID = params.studyInstanceUid;
   const tags = utils.seriesLevelTags();
   const json = await utils.doFind('SERIES', query, tags);
   reply.send(json);
@@ -125,8 +125,8 @@ server.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req: any, rep
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series', async (req: any, reply: any) => {
   const tags = utils.seriesLevelTags();
-  const { query } = req;
-  query.StudyInstanceUID = req.params.studyInstanceUid;
+  const { query, params } = req;
+  query.StudyInstanceUID = params.studyInstanceUid;
 
   const json = await utils.doFind('SERIES', query, tags);
   reply.send(json);
@@ -136,9 +136,9 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series', async (req: any, reply
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req: any, reply: any) => {
   const tags = utils.imageLevelTags();
-  const { query } = req;
-  query.StudyInstanceUID = req.params.studyInstanceUid;
-  query.SeriesInstanceUID = req.params.seriesInstanceUid;
+  const { query, params } = req;
+  query.StudyInstanceUID = params.studyInstanceUid;
+  query.SeriesInstanceUID = params.seriesInstanceUid;
 
   const json = await utils.doFind('IMAGE', query, tags);
   reply.send(json);
@@ -148,16 +148,16 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
   const tags = utils.imageLevelTags();
-  const { query } = req;
-  query.StudyInstanceUID = req.params.studyInstanceUid;
-  query.SeriesInstanceUID = req.params.seriesInstanceUid;
+  const { query, params } = req;
+  query.StudyInstanceUID = params.studyInstanceUid;
+  query.SeriesInstanceUID = params.seriesInstanceUid;
 
   const json = await utils.doFind('IMAGE', query, tags);
 
   // make sure c-find worked
   if (json.length === 0) {
     logger.error('no metadata found');
-    reply.status(500).send(json);
+    reply.send(500);
     return;
   }
 
@@ -317,7 +317,7 @@ server.get('/viewer/wadouri', async (req: any, reply: any) => {
     reply.send(rsp);
   } catch (error) {
     logger.error(error);
-    reply.status(500).send(error);
+    reply.send(500);
   }
 });
 
