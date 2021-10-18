@@ -165,8 +165,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
   // make sure c-find worked
   if (json.length === 0) {
     logger.error('no metadata found');
-    reply.setCode(500);
-    reply.send(json);
+    reply.status(500).send(json);
     return;
   }
 
@@ -325,8 +324,7 @@ server.get('/viewer/wadouri', async (req: any, reply: any) => {
     reply.send(rsp);
   } catch (error) {
     logger.error(error);
-    reply.setCode(500);
-    reply.send(error);
+    reply.status(500).send(error);
   }
 });
 
