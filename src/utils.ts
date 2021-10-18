@@ -8,7 +8,31 @@ import path from 'path';
 import fs from 'fs';
 import throat from 'throat';
 
-const lock = new Map();
+interface KeyValue {
+  key: string;
+  value: string;
+}
+
+interface DicomNode {
+  aet: string;
+  ip: string;
+  port: string;
+} 
+
+class DIMSERequest {
+  source?: DicomNode;
+  target?: DicomNode;
+  netTransferPrefer?: string;
+  netTransferPropose?: string;
+  writeTransfer?: string;
+  verbose?: boolean;
+  permissive?: boolean;
+  storagePath?: string;
+  tags: KeyValue[] = new Array<KeyValue>();
+  peers: DicomNode[] = new Array<DicomNode>();
+}
+
+const lock = new Map<string, Promise<any>>();
 const maxAssociations = config.get('maxAssociations') as number;
 
 // make sure default directories exist
@@ -96,7 +120,7 @@ const queryLevelToPath = (studyUid: any, seriesUid: any, imageUid: any, qlevel: 
 //------------------------------------------------------------------
 
 // remove cached data if outdated
-const clearCache = (storagePath: any, currentUid: any) => {
+const clearCache = (storagePath: string, currentUid: string) => {
   const currentDate = new Date();
   storage.forEach((item: any) => {
     const dt = new Date(item.value);
@@ -124,23 +148,20 @@ const clearCache = (storagePath: any, currentUid: any) => {
 //------------------------------------------------------------------
 
 // request data from PACS via c-get or c-move
-const fetchData = async (studyUid: string, seriesUid: string, imageUid: string, level: string) => {
+const fetchData = async (studyUid: string, seriesUid: string, imageUid: string, level: string): Promise<any> => {
   const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
   const queryLevel = getQuerLevel(level);
 
   // add query retrieve level and fetch whole study
-  const j = {
-    tags: [
-      {
-        key: '00080052',
-        value: level,
-      },
-      {
-        key: '0020000D',
-        value: studyUid,
-      },
-    ],
-  };
+  let j = new DIMSERequest();
+  j.tags.push({
+    key: '00080052',
+    value: level,
+  });
+  j.tags.push({
+    key: '0020000D',
+    value: studyUid,
+  });
 
   if (queryLevel >= QUERY_LEVEL.SERIES) {
     j.tags.push({
@@ -157,20 +178,13 @@ const fetchData = async (studyUid: string, seriesUid: string, imageUid: string, 
   }
 
   // set source and target from config
-  const ts = config.get('transferSyntax');
-  // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPrefer' does not exist on typ... Remove this comment to see the full error message
+  const ts = config.get('transferSyntax') as string;
   j.netTransferPrefer = ts;
-  // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPropose' does not exist on ty... Remove this comment to see the full error message
   j.netTransferPropose = ts;
-  // @ts-expect-error ts-migrate(2339) FIXME: Property 'writeTransfer' does not exist on type '{... Remove this comment to see the full error message
   j.writeTransfer = ts;
-  // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{ tags: ... Remove this comment to see the full error message
   j.source = config.get('source');
-  // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{ tags: ... Remove this comment to see the full error message
   j.target = config.get('target');
-  // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{ tags:... Remove this comment to see the full error message
-  j.verbose = config.get('verboseLogging');
-  // @ts-expect-error ts-migrate(2339) FIXME: Property 'storagePath' does not exist on type '{ t... Remove this comment to see the full error message
+  j.verbose = config.get('verboseLogging') as boolean;
   j.storagePath = config.get('storagePath');
 
   const scu = config.get('useCget') ? dimse.getScu : dimse.moveScu;
@@ -208,8 +222,7 @@ const fetchData = async (studyUid: string, seriesUid: string, imageUid: string, 
               logger.info(JSON.parse(result));
             }
           } catch (error) {
-            // @ts-expect-error ts-migrate(2554) FIXME: Expected 0-1 arguments, but got 2.
-            reject(error, result);
+            reject(error);
           }
           lock.delete(lockId);
         }
@@ -236,27 +249,18 @@ const utils = {
   },
 
   async startScp() {
-    const ts = config.get('transferSyntax');
-    const j = {};
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
+    const ts = config.get('transferSyntax') as string;
+    const j = new DIMSERequest();
     j.source = config.get('source');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'storagePath' does not exist on type '{}'... Remove this comment to see the full error message
     j.storagePath = config.get('storagePath');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{}'.
     j.verbose = config.get('verboseLogging');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPrefer' does not exist on typ... Remove this comment to see the full error message
     j.netTransferPrefer = ts;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'netTransferPropose' does not exist on ty... Remove this comment to see the full error message
     j.netTransferPropose = ts;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'writeTransfer' does not exist on type '{... Remove this comment to see the full error message
     j.writeTransfer = ts;
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'peers' does not exist on type '{}'.
     j.peers = [config.get('target')];
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'permissive' does not exist on type '{}'.
     j.permissive = true;
 
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
-    logger.info(`pacs-server listening on port: ${j.source.port}`);
+    logger.info(`pacs-server listening on port: ${j.source?.port}`);
 
     dimse.startScp(JSON.stringify(j), (result: any) => {
       // currently this will never finish
@@ -265,27 +269,22 @@ const utils = {
   },
 
   async shutdown() {
-    const j = {};
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
+    const j = new DIMSERequest();
     j.source = config.get('source');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
     j.target = config.get('source');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{}'.
     j.verbose = config.get('verboseLogging');
 
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
-    logger.info(`sending shutdown request to target: ${j.target.aet}`);
+    logger.info(`sending shutdown request to target: ${j.target?.aet}`);
 
     return new Promise((resolve, reject) => {
       dimse.shutdownScu(JSON.stringify(j), (result: any) => {
         if (result && result.length > 0) {
           try {
             logger.info(JSON.parse(result));
-            // @ts-expect-error ts-migrate(2794) FIXME: Expected 1 arguments, but got 0. Did you forget to... Remove this comment to see the full error message
-            resolve();
+            resolve(true);
           } catch (error) {
             logger.error(result);
-            reject();
+            reject(error);
           }
         }
         reject();
@@ -294,16 +293,12 @@ const utils = {
   },
 
   async sendEcho() {
-    const j = {};
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{}'.
+    const j = new DIMSERequest();
     j.source = config.get('source');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
     j.target = config.get('target');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{}'.
     j.verbose = config.get('verboseLogging');
 
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{}'.
-    logger.info(`sending C-ECHO to target: ${j.target.aet}`);
+    logger.info(`sending C-ECHO to target: ${j.target?.aet}`);
 
     return new Promise((resolve, reject) => {
       dimse.echoScu(JSON.stringify(j), (result: any) => {
@@ -321,27 +316,25 @@ const utils = {
     });
   },
 
-  async waitOrFetchData(studyUid: string, seriesUid: string, imageUid: string, level: string) {
+  async waitOrFetchData(studyUid: string, seriesUid: string, imageUid: string, level: string): Promise<any> {
     const lockId = getLockUid(studyUid, seriesUid, imageUid, level);
 
     // check if already locked and return promise
     if (lock.has(lockId)) {
       return lock.get(lockId);
     }
-
+    await fetchData(studyUid, seriesUid, imageUid, level);
+    /*
     return throat(maxAssociations, async () => {
       await fetchData(studyUid, seriesUid, imageUid, level);
     });
+    */
   },
 
-  fileExists(pathname: string) {
-    return new Promise((resolve, reject) => {
+  fileExists(pathname: string): Promise<boolean> {
+    return new Promise((resolve) => {
       fs.access(pathname, (err: any) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(true);
-        }
+        err ? resolve(false) : resolve(true); 
       });
     });
   },
@@ -411,21 +404,15 @@ const utils = {
 
   async doFind(queryLevel: string, query: any, defaults: string[]): Promise<any> {
     // add query retrieve level
-    const j = {
-      tags: [
-        {
-          key: '00080052',
-          value: queryLevel,
-        },
-      ],
-    };
+    const j = new DIMSERequest();
+    j.tags.push({
+      key: '00080052',
+      value: queryLevel,
+    });
 
     // set source and target from config
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'source' does not exist on type '{ tags: ... Remove this comment to see the full error message
     j.source = config.get('source');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'target' does not exist on type '{ tags: ... Remove this comment to see the full error message
     j.target = config.get('target');
-    // @ts-expect-error ts-migrate(2339) FIXME: Property 'verbose' does not exist on type '{ tags:... Remove this comment to see the full error message
     j.verbose = config.get('verboseLogging');
 
     // parse all include fields

@@ -162,28 +162,21 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
   }
 
   // check if fetch is needed
-  const accessing = [];
-  const fetching: any = [];
   for (let i = 0; i < json.length; i += 1) {
     const sopInstanceUid = json[i]['00080018'].Value[0];
     const storagePath = config.get('storagePath') as string;
     const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
-    const accessPromise = utils.fileExists(pathname).catch(() => {
-      fetching.push(utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, '', 'SERIES'));
-    });
-    accessing.push(accessPromise);
-  }
-  await Promise.all(accessing);
-
-  if (fetching.length > 0) {
-    // fetch series
-    logger.info(`fetching series ${query.SeriesInstanceUID}`);
-    await fetching[0];
+    const fileExists = await utils.fileExists(pathname);
+    if (!fileExists) {
+      logger.info(`fetching series ${query.SeriesInstanceUID}`);
+      await utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, '', 'SERIES');
+      break;
+    };
   }
 
   logger.info(`parsing series ${query.SeriesInstanceUID}`);
-  const reading = [];
-  const parsing: any = [];
+  const reading =  new Array<Promise<Buffer>>();
+  const parsing =  new Array<Promise<void>>();
   for (let i = 0; i < json.length; i += 1) {
     const sopInstanceUid = json[i]['00080018'].Value[0];
     const storagePath = config.get('storagePath') as string;
