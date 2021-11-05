@@ -1,6 +1,21 @@
+import {
+  echoScu,
+  echoScuOptions,
+  findScu,
+  findScuOptions,
+  startStoreScp,
+  storeScpOptions,
+  getScu,
+  getScuOptions,
+  moveScu,
+  moveScuOptions,
+  shutdownScu,
+  shutdownScuOptions,
+  recompress,
+  recompressOptions,
+} from 'dicom-dimse-native';
 import config from 'config';
 import * as dict from 'dicom-data-dictionary';
-import dimse from 'dicom-dimse-native';
 import simpleLogger from 'simple-node-logger';
 import shell from 'shelljs';
 import storage from 'node-persist';
@@ -10,31 +25,6 @@ import throat from 'throat';
 
 const maxAssociations = config.get('maxAssociations') as number;
 const throatLock = throat(maxAssociations);
-
-interface KeyValue {
-  key: string;
-  value: string;
-}
-
-interface DicomNode {
-  aet: string;
-  ip: string;
-  port: string;
-} 
-
-class DIMSERequest {
-  source?: DicomNode;
-  target?: DicomNode;
-  netTransferPrefer?: string;
-  netTransferPropose?: string;
-  writeTransfer?: string;
-  verbose?: boolean;
-  permissive?: boolean;
-  storagePath?: string;
-  tags: KeyValue[] = new Array<KeyValue>();
-  peers: DicomNode[] = new Array<DicomNode>();
-}
-
 const lock = new Map<string, Promise<any>>();
 
 // make sure default directories exist
@@ -49,6 +39,7 @@ const opts = {
   fileNamePattern: 'roll-<DATE>.log',
   dateFormat: 'YYYY.MM.DD',
 };
+
 const manager = simpleLogger.createLogManager();
 // manager.createConsoleAppender();
 manager.createRollingFileAppender(opts);
@@ -101,7 +92,7 @@ const getQuerLevel = (level: string) => {
 
   logger.warn('level not found: ', level);
   return QUERY_LEVEL.STUDY;
-}
+};
 
 //------------------------------------------------------------------
 
@@ -155,50 +146,52 @@ const fetchData = async (studyUid: string, seriesUid: string, imageUid: string, 
   const queryLevel = getQuerLevel(level);
 
   // add query retrieve level and fetch whole study
-  let j = new DIMSERequest();
-  j.tags.push({
-    key: '00080052',
-    value: level,
-  });
-  j.tags.push({
-    key: '0020000D',
-    value: studyUid,
-  });
+  const ts = config.get('transferSyntax') as string;
+  const getOptions: getScuOptions = {
+    tags: [
+      {
+        key: '00080052',
+        value: level,
+      },
+      {
+        key: '0020000D',
+        value: studyUid,
+      },
+    ],
+    netTransferPrefer: ts,
+    source: config.get('source'),
+    target: config.get('target'),
+    verbose: config.get('verboseLogging') as boolean,
+    storagePath: config.get('storagePath'),
+  };
 
   if (queryLevel >= QUERY_LEVEL.SERIES) {
-    j.tags.push({
+    getOptions.tags.push({
       key: '0020000E',
       value: seriesUid,
     });
   }
 
   if (queryLevel >= QUERY_LEVEL.IMAGE) {
-    j.tags.push({
+    getOptions.tags.push({
       key: '00080018',
       value: imageUid,
     });
   }
 
-  // set source and target from config
-  const ts = config.get('transferSyntax') as string;
-  j.netTransferPrefer = ts;
-  j.netTransferPropose = ts;
-  j.writeTransfer = ts;
-  j.source = config.get('source');
-  j.target = config.get('target');
-  j.verbose = config.get('verboseLogging') as boolean;
-  j.storagePath = config.get('storagePath');
+  // TODO: CHECK
+  // netTransferPropose = ts;
+  // writeTransfer = ts;
 
-  const scu = config.get('useCget') ? dimse.getScu : dimse.moveScu;
+  const scu = getScu; // config.get('useCget') ? getScu : moveScu;
   const uidPath = queryLevelToPath(studyUid, seriesUid, imageUid, queryLevel);
   const cacheTime = config.get('keepCacheInMinutes') as number;
 
   const prom = new Promise((resolve, reject) => {
     try {
       logger.info(`fetch start: ${uidPath}`);
-      // @ts-expect-error ts-migrate(2339) FIXME: Property 'storagePath' does not exist on type '{ t... Remove this comment to see the full error message
-      clearCache(j.storagePath, studyUid);
-      scu(JSON.stringify(j), (result: any) => {
+      clearCache(config.get('storagePath'), studyUid);
+      scu(getOptions, (result: any) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
@@ -252,34 +245,36 @@ const utils = {
 
   async startScp() {
     const ts = config.get('transferSyntax') as string;
-    const j = new DIMSERequest();
-    j.source = config.get('source');
-    j.storagePath = config.get('storagePath');
-    j.verbose = config.get('verboseLogging');
-    j.netTransferPrefer = ts;
-    j.netTransferPropose = ts;
-    j.writeTransfer = ts;
-    j.peers = [config.get('target')];
-    j.permissive = true;
 
-    logger.info(`pacs-server listening on port: ${j.source?.port}`);
+    const options: storeScpOptions = {
+      source: config.get('source'),
+      peers: [config.get('target')],
+      storagePath: config.get('storagePath'),
+      netTransferPrefer: ts,
+      netTransferPropose: ts,
+      writeTransfer: ts,
+      permissive: true,
+      verbose: config.get('verboseLogging'),
+    };
+    logger.info(`pacs-server listening on port: ${options.source?.port}`);
 
-    dimse.startScp(JSON.stringify(j), (result: any) => {
+    startStoreScp(options, (result: any) => {
       // currently this will never finish
       logger.info(JSON.parse(result));
     });
   },
 
   async shutdown() {
-    const j = new DIMSERequest();
-    j.source = config.get('source');
-    j.target = config.get('source');
-    j.verbose = config.get('verboseLogging');
+    const options: shutdownScuOptions = {
+      source: config.get('source'),
+      target: config.get('source'),
+      verbose: config.get('verboseLogging'),
+    };
 
-    logger.info(`sending shutdown request to target: ${j.target?.aet}`);
+    logger.info(`sending shutdown request to target: ${options.target?.aet}`);
 
     return new Promise((resolve, reject) => {
-      dimse.shutdownScu(JSON.stringify(j), (result: any) => {
+      shutdownScu(options, (result: any) => {
         if (result && result.length > 0) {
           try {
             logger.info(JSON.parse(result));
@@ -295,15 +290,16 @@ const utils = {
   },
 
   async sendEcho() {
-    const j = new DIMSERequest();
-    j.source = config.get('source');
-    j.target = config.get('target');
-    j.verbose = config.get('verboseLogging');
+    const options: echoScuOptions = {
+      source: config.get('source'),
+      target: config.get('target'),
+      verbose: config.get('verboseLogging'),
+    };
 
-    logger.info(`sending C-ECHO to target: ${j.target?.aet}`);
+    logger.info(`sending C-ECHO to target: ${options.target?.aet}`);
 
     return new Promise((resolve, reject) => {
-      dimse.echoScu(JSON.stringify(j), (result: any) => {
+      echoScu(options, (result: any) => {
         if (result && result.length > 0) {
           try {
             logger.info(JSON.parse(result));
@@ -331,13 +327,13 @@ const utils = {
   fileExists(pathname: string): Promise<boolean> {
     return new Promise((resolve) => {
       fs.access(pathname, (err: any) => {
-        err ? resolve(false) : resolve(true); 
+        err ? resolve(false) : resolve(true);
       });
     });
   },
 
   compressFile(inputFile: string, outputDirectory: string, transferSyntax: string | undefined) {
-    const j = {
+    const options: recompressOptions = {
       sourcePath: inputFile,
       storagePath: outputDirectory,
       writeTransfer: transferSyntax || config.get('transferSyntax'),
@@ -346,7 +342,7 @@ const utils = {
 
     // run find scu and return json response
     return new Promise((resolve, reject) => {
-      dimse.recompress(JSON.stringify(j), (result: any) => {
+      recompress(options, (result: any) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
@@ -401,16 +397,17 @@ const utils = {
 
   async doFind(queryLevel: string, query: any, defaults: string[]): Promise<any> {
     // add query retrieve level
-    const j = new DIMSERequest();
-    j.tags.push({
-      key: '00080052',
-      value: queryLevel,
-    });
-
-    // set source and target from config
-    j.source = config.get('source');
-    j.target = config.get('target');
-    j.verbose = config.get('verboseLogging');
+    const options: findScuOptions = {
+      tags: [
+        {
+          key: '00080052',
+          value: queryLevel,
+        },
+      ],
+      source: config.get('source'),
+      target: config.get('target'),
+      verbose: config.get('verboseLogging'),
+    };
 
     // parse all include fields
     const includes = query.includefield;
@@ -424,7 +421,7 @@ const utils = {
     // add parsed tags
     tags.forEach((element: any) => {
       const tagName = findDicomName(element) || element;
-      j.tags.push({ key: tagName, value: '' });
+      options.tags.push({ key: tagName, value: '' });
     });
 
     // add search param
@@ -445,7 +442,7 @@ const utils = {
             v += '*';
           }
         }
-        j.tags.push({ key: tag, value: v });
+        options.tags.push({ key: tag, value: v });
       }
     });
 
@@ -457,7 +454,7 @@ const utils = {
       if (invalidInput) {
         resolve([]);
       }
-      dimse.findScu(JSON.stringify(j), (result: any) => {
+      findScu(options, (result: any) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);

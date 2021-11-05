@@ -4,14 +4,14 @@ const config = {};
 config.source = {
   aet: "DICOMWEB_PROXY",
   ip: "127.0.0.1",
-  port: "8888"
+  port: 8888
 };
 
 // our target PACS
 config.target = {
   aet: "CONQUESTSRV1",
   ip: "127.0.0.1",
-  port: "5678"
+  port: 5678
 };
 
 
