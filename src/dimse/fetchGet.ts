@@ -5,7 +5,7 @@ import { LoggerSingleton } from '../utils/logger';
 import { QUERY_LEVEL, queryLevelToPath, getQuerLevel } from './querLevel';
 
 // request data from PACS via c-get or c-move
-export async function fetchData (studyUid: string, seriesUid: string, imageUid: string, level: string): Promise<any> {
+export async function fetchGet (studyUid: string, seriesUid: string, imageUid: string, level: string): Promise<any> {
   const logger = LoggerSingleton.Instance;
   const queryLevel = getQuerLevel(level);
 

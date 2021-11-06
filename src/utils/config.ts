@@ -12,6 +12,7 @@ export const enum ConfParams {
   APPEND_WILDCARD,
   FETCH_LEVEL,
   MAX_ASSOCIATIONS,
+  C_GET,
 }
 
 const ConfDef: any = new Map([
@@ -25,6 +26,7 @@ const ConfDef: any = new Map([
   [ConfParams.APPEND_WILDCARD, 'qidoAppendWildcard'],
   [ConfParams.FETCH_LEVEL, 'useFetchLevel'],
   [ConfParams.MAX_ASSOCIATIONS, 'maxAssociations'],
+  [ConfParams.C_GET, 'useCget'],
 ]);
 
 interface IConfig {
