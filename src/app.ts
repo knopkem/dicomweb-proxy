@@ -6,8 +6,18 @@ import io from 'socket.io-client';
 import crypto from 'crypto';
 import { Readable } from 'stream';
 import dicomParser from 'dicom-parser';
-import utils from './utils';
-const logger = utils.getLogger();
+import { seriesLevelTags, studyLevelTags, imageLevelTags } from './dimse/tags';
+import { doFind } from './dimse/findData';
+import { sendEcho } from './dimse/echo';
+import { doWadoUri } from './dimse/wadoUri';
+import { compressFile } from './dimse/compress';
+import { startScp, shutdown } from './dimse/store';
+import { fileExists } from './utils/fileHelper';
+import { waitOrFetchData } from './dimse/fetchData';
+import { LoggerSingleton } from './utils/logger';
+import { parseMeta } from './dimse/parseMeta';
+
+const logger = LoggerSingleton.Instance;
 
 const server = fastify();
 server.register(require('fastify-static'), {
@@ -39,15 +49,15 @@ socket.on('qido-request', async (data: any) => {
   logger.info('websocket qido request received, fetching metadata now...');
 
   if (data) {
-    let tags = new Array<any>();
+    let tags = new Array<string>();
     if (data.level === 'STUDY') {
-      tags = utils.studyLevelTags();
+      tags = studyLevelTags;
     } else if (data.level === 'SERIES') {
-      tags = utils.seriesLevelTags();
+      tags = seriesLevelTags;
     } else if (data.level === 'IMAGE') {
-      tags = utils.imageLevelTags();
+      tags = imageLevelTags;
     }
-    const json = await utils.doFind(data.level, data.query, tags);
+    const json = await doFind(data.level, data.query, tags);
     logger.info('sending websocket response');
     socket.emit(data.uuid, json);
   }
@@ -58,7 +68,7 @@ socket.on('wadouri-request', async (data: any) => {
 
   if (data) {
     try {
-      const rsp = await utils.doWadoUri(data.query);
+      const rsp = await doWadoUri(data.query);
       socket.emit(data.uuid, rsp);
     } catch (error) {
       logger.error(error);
@@ -90,7 +100,7 @@ process.on('SIGINT', async () => {
   logger.info('webserver shutdown successfully');
   if (!config.get('useCget')) {
     logger.info('shutting down DICOM SCP server...');
-    await utils.shutdown();
+    await shutdown();
   }
   process.exit(1);
 });
@@ -98,16 +108,14 @@ process.on('SIGINT', async () => {
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies', async (req: any, reply: any) => {
-  const tags = utils.studyLevelTags();
-  const json = await utils.doFind('STUDY', req.query, tags);
+  const json = await doFind('STUDY', req.query, studyLevelTags);
   reply.send(json);
 });
 
 //------------------------------------------------------------------
 
 server.get('/rs/studies', async (req: any, reply: any) => {
-  const tags = utils.studyLevelTags();
-  const json = await utils.doFind('STUDY', req.query, tags);
+  const json = await doFind('STUDY', req.query, studyLevelTags);
   reply.send(json);
 });
 
@@ -116,43 +124,39 @@ server.get('/rs/studies', async (req: any, reply: any) => {
 server.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req: any, reply: any) => {
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
-  const tags = utils.seriesLevelTags();
-  const json = await utils.doFind('SERIES', query, tags);
+  const json = await doFind('SERIES', query, seriesLevelTags);
   reply.send(json);
 });
 
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series', async (req: any, reply: any) => {
-  const tags = utils.seriesLevelTags();
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
 
-  const json = await utils.doFind('SERIES', query, tags);
+  const json = await doFind('SERIES', query, seriesLevelTags);
   reply.send(json);
 });
 
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req: any, reply: any) => {
-  const tags = utils.imageLevelTags();
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
   query.SeriesInstanceUID = params.seriesInstanceUid;
 
-  const json = await utils.doFind('IMAGE', query, tags);
+  const json = await doFind('IMAGE', query, imageLevelTags);
   reply.send(json);
 });
 
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
-  const tags = utils.imageLevelTags();
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
   query.SeriesInstanceUID = params.seriesInstanceUid;
 
-  const json = await utils.doFind('IMAGE', query, tags);
+  const json = await doFind('IMAGE', query, imageLevelTags);
 
   // make sure c-find worked
   if (json.length === 0) {
@@ -166,76 +170,15 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
     const sopInstanceUid = json[i]['00080018'].Value[0];
     const storagePath = config.get('storagePath') as string;
     const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
-    const fileExists = await utils.fileExists(pathname);
-    if (!fileExists) {
+    const exists = await fileExists(pathname);
+    if (!exists) {
       logger.info(`fetching series ${query.SeriesInstanceUID}`);
-      await utils.waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, '', 'SERIES');
+      await waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, '', 'SERIES');
       break;
     };
   }
-
-  logger.info(`parsing series ${query.SeriesInstanceUID}`);
-  const reading =  new Array<Promise<Buffer>>();
-  const parsing =  new Array<Promise<void>>();
-  for (let i = 0; i < json.length; i += 1) {
-    const sopInstanceUid = json[i]['00080018'].Value[0];
-    const storagePath = config.get('storagePath') as string;
-    const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
-
-    const readPromise = fs.promises.readFile(pathname);
-    reading.push(readPromise);
-    readPromise.then((data: any) => {
-      const dataset = dicomParser.parseDicom(data);
-
-      // parse additional needed attributes
-      const bitsAllocated = dataset.uint16('x00280100');
-      const bitsStored = dataset.uint16('x00280101');
-      const highBit = dataset.uint16('x00280102');
-      const rows = dataset.uint16('x00280010');
-      const cols = dataset.uint16('x00280011');
-      const pixelSpacingString = dataset.string('x00280030');
-      const pixelSpacing = pixelSpacingString ? pixelSpacingString.split('\\').map((e: any) => parseFloat(e)) : [1, 1];
-      const modality = dataset.string('x00080060');
-      const samplesPerPixel = dataset.uint16('x00280002');
-      const photometricInterpretation = dataset.string('x00280004');
-      const pixelRepresentation = dataset.uint16('x00280103');
-      const windowCenter = dataset.string('x00281050');
-      const wc = windowCenter ? parseFloat(windowCenter.split('\\')[0]) : 40;
-      const windowWidth = dataset.string('x00281051');
-      const ww = windowWidth ? parseFloat(windowWidth.split('\\')[0]) : 80;
-      const rescaleIntercept = parseFloat(dataset.string('x00281052'));
-      const rescaleSlope = parseFloat(dataset.string('x00281053'));
-      const iopString = dataset.string('x00200037');
-      const iop = iopString ? iopString.split('\\').map((e: any) => parseFloat(e)) : null;
-      const ippString = dataset.string('x00200032');
-      const ipp = ippString ? ippString.split('\\').map((e: any) => parseFloat(e)) : null;
-
-      // append to all results
-
-      json[i]['00080060'] = { Value: [modality], vr: 'CS' };
-      json[i]['00280002'] = { Value: [samplesPerPixel], vr: 'US' };
-      json[i]['00280004'] = { Value: [photometricInterpretation], vr: 'CS' };
-      json[i]['00280010'] = { Value: [rows], vr: 'US' };
-      json[i]['00280011'] = { Value: [cols], vr: 'US' };
-      json[i]['00280030'] = { Value: pixelSpacing, vr: 'DS' };
-      json[i]['00280100'] = { Value: [bitsAllocated], vr: 'US' };
-      json[i]['00280101'] = { Value: [bitsStored], vr: 'US' };
-      json[i]['00280102'] = { Value: [highBit], vr: 'US' };
-      json[i]['00280103'] = { Value: [pixelRepresentation], vr: 'US' };
-      json[i]['00281050'] = { Value: [wc], vr: 'DS' };
-      json[i]['00281051'] = { Value: [ww], vr: 'DS' };
-      json[i]['00281052'] = { Value: [rescaleIntercept], vr: 'DS' };
-      json[i]['00281053'] = { Value: [rescaleSlope], vr: 'DS' };
-      if (iop) json[i]['00200037'] = { Value: iop, vr: 'DS' };
-      if (ipp) json[i]['00200032'] = { Value: ipp, vr: 'DS' };
-      parsing.push(Promise.resolve());
-    });
-  }
-  await Promise.all(reading);
-  await Promise.all(parsing);
-
-  reply.send(json);
-
+  const result = await parseMeta(json, query);
+  reply.send(result);
 });
 
 //------------------------------------------------------------------
@@ -249,7 +192,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
 
   try {
     // logger.info(studyInstanceUid, seriesInstanceUid, sopInstanceUid, frame);
-    await utils.fileExists(pathname);
+    await fileExists(pathname);
   } catch (error) {
     logger.error(error);
     reply.code(404);
@@ -258,7 +201,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
   }
 
   try {
-    await utils.compressFile(pathname, studyPath, '1.2.840.10008.1.2');
+    await compressFile(pathname, studyPath, '1.2.840.10008.1.2');
   } catch (error) {
     logger.error(error);
     const msg = `failed to compress ${pathname}`;
@@ -305,7 +248,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
 
 server.get('/viewer/wadouri', async (req: any, reply: any) => {
   try {
-    const rsp = await utils.doWadoUri(req.query);
+    const rsp = await doWadoUri(req.query);
     reply.header('Content-Type', 'application/dicom');
     reply.send(rsp);
   } catch (error) {
@@ -325,13 +268,11 @@ server.listen(port, '0.0.0.0', async (err: any, address: any) => {
   }
   logger.info(`web-server listening on port: ${port}`);
 
-  await utils.init();
-
   // if not using c-get, start our scp
   if (!config.get('useCget')) {
-    utils.startScp();
+    startScp();
   }
-  utils.sendEcho();
+  sendEcho();
 
   if (websocketUrl) {
     logger.info(`connecting to dicomweb.websocket-bridge: ${websocketUrl}`);
