@@ -177,8 +177,13 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
       break;
     };
   }
-  const result = await parseMeta(json, query);
-  reply.send(result);
+  try {
+    const result = await parseMeta(json, query);
+    reply.send(result);
+  } catch (error) {
+    logger.error(error);
+    reply.send(500);    
+  }
 });
 
 //------------------------------------------------------------------

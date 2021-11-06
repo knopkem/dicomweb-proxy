@@ -23,7 +23,7 @@ export class LoggerSingleton
         };
 
         const manager = SimpleLogger.createLogManager();
-        manager.createConsoleAppender();
+        // manager.createConsoleAppender();
         manager.createRollingFileAppender(opts);
         this.logger = manager.createLogger();
     }
