@@ -3,7 +3,7 @@
   import { recompress, recompressOptions } from 'dicom-dimse-native';
   import { LoggerSingleton } from '../utils/logger';
 
-  export async function compressFile(inputFile: string, outputDirectory: string, transferSyntax: string | undefined) {
+  export async function compressFile(inputFile: string, outputDirectory: string, transferSyntax: string | undefined = undefined) {
     const logger = LoggerSingleton.Instance;
     const options: recompressOptions = {
       sourcePath: inputFile,

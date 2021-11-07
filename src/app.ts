@@ -1,16 +1,13 @@
 import config from 'config';
-import fs from 'fs';
 import path from 'path';
 import fastify from 'fastify';
 import io from 'socket.io-client';
-import crypto from 'crypto';
-import { Readable } from 'stream';
-import dicomParser from 'dicom-parser';
 import { seriesLevelTags, studyLevelTags, imageLevelTags } from './dimse/tags';
 import { doFind } from './dimse/findData';
-import { sendEcho } from './dimse/echo';
+import { sendEcho } from './dimse/sendEcho';
+import { doWadoRs } from './dimse/wadoRs';
 import { doWadoUri } from './dimse/wadoUri';
-import { compressFile } from './dimse/compress';
+import { compressFile } from './dimse/compressFile';
 import { startScp, shutdown } from './dimse/store';
 import { fileExists } from './utils/fileHelper';
 import { waitOrFetchData } from './dimse/fetchData';
@@ -191,71 +188,26 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req: any, reply: any) => {
   const { studyInstanceUid, sopInstanceUid } = req.params;
 
-  const storagePath = config.get('storagePath') as string;
-  const studyPath = path.join(storagePath, studyInstanceUid);
-  const pathname = path.join(studyPath, sopInstanceUid);
-
+  
   try {
-    // logger.info(studyInstanceUid, seriesInstanceUid, sopInstanceUid, frame);
-    await fileExists(pathname);
+    const rsp = await doWadoRs( {studyInstanceUid, sopInstanceUid} );
+    reply.header('Content-Type', rsp.contentType);
+    reply.send(rsp.buffer);
   } catch (error) {
     logger.error(error);
-    reply.code(404);
-    reply.send(`File ${pathname} not found!`);
-    return;
-  }
-
-  try {
-    await compressFile(pathname, studyPath, '1.2.840.10008.1.2');
-  } catch (error) {
-    logger.error(error);
-    const msg = `failed to compress ${pathname}`;
-    reply.code(500);
-    reply.send(msg);
-    return;
-  }
-
-  // read file from file system
-  try {
-    const data = await fs.promises.readFile(pathname);
-    const dataset = dicomParser.parseDicom(data);
-    const pixelDataElement = dataset.elements.x7fe00010;
-    const buffer = Buffer.from(dataset.byteArray.buffer, pixelDataElement.dataOffset, pixelDataElement.length);
-
-    const term = '\r\n';
-    const boundary = crypto.randomBytes(16).toString('hex');
-    const contentId = crypto.randomBytes(16).toString('hex');
-    const endline = `${term}--${boundary}--${term}`;
-
-    reply.header('Content-Type', `multipart/related;start=${contentId};type='application/octed-stream';boundary='${boundary}'`);
-
-    const readStream = new Readable({
-      read() {
-        this.push(`${term}--${boundary}${term}`);
-        this.push(`Content-Location:localhost${term}`);
-        this.push(`Content-ID:${contentId}${term}`);
-        this.push(`Content-Type:application/octet-stream${term}`);
-        this.push(term);
-        this.push(buffer);
-        this.push(endline);
-        this.push(null);
-      },
-    });
-    reply.send(readStream);
-  } catch (error) {
-    logger.error(error);
-    reply.code(500);
-    reply.send(`Error getting the file: ${error}.`);
+    reply.send(500);
   }
 });
 
 //------------------------------------------------------------------
 
 server.get('/viewer/wadouri', async (req: any, reply: any) => {
+  const { studyUID, seriesUID, objectUID } = req.query;
+
   try {
-    const rsp = await doWadoUri(req.query);
-    reply.header('Content-Type', 'application/dicom');
-    reply.send(rsp);
+    const rsp = await doWadoUri({studyInstanceUid: studyUID, seriesInstanceUid: seriesUID, sopInstanceUid: objectUID});
+    reply.header('Content-Type', rsp.contentType);
+    reply.send(rsp.buffer);
   } catch (error) {
     logger.error(error);
     reply.send(500);

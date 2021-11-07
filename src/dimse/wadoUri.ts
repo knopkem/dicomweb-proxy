@@ -2,31 +2,33 @@
 import { ConfParams, config } from '../utils/config';
 import { LoggerSingleton } from '../utils/logger';
 import { fileExists } from '../utils/fileHelper';
-import { compressFile } from './compress';
+import { compressFile } from './compressFile';
 import { waitOrFetchData } from './fetchData';
 import path from 'path';
 import fs from 'fs';
 
-export async function doWadoUri(query: any) {
+type WadoUriArgs = {
+  studyInstanceUid: string;
+  seriesInstanceUid: string;
+  sopInstanceUid: string;
+};
+type WadoUriResponse = {
+  contentType: string;
+  buffer: Buffer;
+};
+export async function doWadoUri({studyInstanceUid, seriesInstanceUid, sopInstanceUid}: WadoUriArgs): Promise<WadoUriResponse> {
   const logger = LoggerSingleton.Instance;
   const fetchLevel = config.get(ConfParams.FETCH_LEVEL) as string;
-  const studyUid = query.studyUID as string;
-  const seriesUid = query.seriesUID as string;
-  const imageUid = query.objectUID as string;
-  if (!studyUid || !seriesUid || !imageUid) {
-    const msg = `Error missing parameters.`;
-    logger.error(msg);
-    throw msg;
-  }
+
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
-  const studyPath = path.join(storagePath, studyUid);
-  const pathname = path.join(studyPath, imageUid);
+  const studyPath = path.join(storagePath, studyInstanceUid);
+  const pathname = path.join(studyPath, sopInstanceUid);
 
   try {
     await fileExists(pathname);
   } catch (error) {
     try {
-      await waitOrFetchData(studyUid, seriesUid, imageUid, fetchLevel);
+      await waitOrFetchData(studyInstanceUid, seriesInstanceUid, sopInstanceUid, fetchLevel);
     } catch (e) {
       logger.error(e);
       const msg = `fetch failed`;
@@ -43,7 +45,7 @@ export async function doWadoUri(query: any) {
   }
 
   try {
-    await compressFile(pathname, studyPath, undefined);
+    await compressFile(pathname, studyPath);
   } catch (error) {
     logger.error(error);
     const msg = `failed to compress ${pathname}`;
@@ -53,7 +55,10 @@ export async function doWadoUri(query: any) {
   // read file from file system
   const fsPromise = fs.promises;
   try {
-    return fsPromise.readFile(pathname);
+    return  {
+      contentType: 'application/dicom',
+      buffer: await fsPromise.readFile(pathname),
+    };
   } catch (error) {
     logger.error(error);
     const msg = `failed to read ${pathname}`;
