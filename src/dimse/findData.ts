@@ -2,6 +2,7 @@ import { findScu, findScuOptions } from "dicom-dimse-native";
 import { ConfParams, config } from '../utils/config';
 import { LoggerSingleton } from '../utils/logger';
 import * as dict from 'dicom-data-dictionary';
+import { queryLevelToString, QUERY_LEVEL } from "./querLevel";
 
 const findDicomName = (name: string) => {
   // eslint-disable-next-line no-restricted-syntax
@@ -15,7 +16,7 @@ const findDicomName = (name: string) => {
 };
 
 
-export async function doFind(queryLevel: string, query: any, defaults: string[]): Promise<any> {
+export async function doFind(level: QUERY_LEVEL, query: any, defaults: string[]): Promise<any> {
   const logger = LoggerSingleton.Instance;
   logger.info('doFind...');
 
@@ -24,7 +25,7 @@ export async function doFind(queryLevel: string, query: any, defaults: string[])
     tags: [
       {
         key: '00080052',
-        value: queryLevel,
+        value: queryLevelToString(level),
       },
     ],
     source: config.get(ConfParams.SOURCE),

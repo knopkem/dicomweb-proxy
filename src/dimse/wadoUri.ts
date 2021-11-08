@@ -6,6 +6,7 @@ import { compressFile } from './compressFile';
 import { waitOrFetchData } from './fetchData';
 import path from 'path';
 import fs from 'fs';
+import { stringToQueryLevel } from './querLevel';
 
 type WadoUriArgs = {
   studyInstanceUid: string;
@@ -19,20 +20,20 @@ type WadoUriResponse = {
 export async function doWadoUri({studyInstanceUid, seriesInstanceUid, sopInstanceUid}: WadoUriArgs): Promise<WadoUriResponse> {
   const logger = LoggerSingleton.Instance;
   const fetchLevel = config.get(ConfParams.FETCH_LEVEL) as string;
+  const level = stringToQueryLevel(fetchLevel);
 
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   const studyPath = path.join(storagePath, studyInstanceUid);
   const pathname = path.join(studyPath, sopInstanceUid);
 
-  try {
-    await fileExists(pathname);
-  } catch (error) {
+  // fetch if needed
+  const exists = await fileExists(pathname);
+  if (!exists) {
     try {
-      await waitOrFetchData(studyInstanceUid, seriesInstanceUid, sopInstanceUid, fetchLevel);
-    } catch (e) {
-      logger.error(e);
-      const msg = `fetch failed`;
-      throw msg;
+      await waitOrFetchData(studyInstanceUid, seriesInstanceUid, sopInstanceUid, level);
+    } catch (err) {
+      logger.error(`fetch failed for study: ${studyInstanceUid}`);
+      throw err;
     }
   }
 

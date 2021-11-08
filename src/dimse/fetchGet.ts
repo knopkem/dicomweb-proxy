@@ -2,12 +2,11 @@
 import { ConfParams, config } from '../utils/config';
 import { getScu, getScuOptions } from 'dicom-dimse-native';
 import { LoggerSingleton } from '../utils/logger';
-import { QUERY_LEVEL, queryLevelToPath, getQuerLevel } from './querLevel';
+import { QUERY_LEVEL, queryLevelToPath, stringToQueryLevel, queryLevelToString } from './querLevel';
 
 // request data from PACS via c-get or c-move
-export async function fetchGet (studyUid: string, seriesUid: string, imageUid: string, level: string): Promise<any> {
+export async function fetchGet (studyUid: string, seriesUid: string, imageUid: string, level: QUERY_LEVEL): Promise<any> {
   const logger = LoggerSingleton.Instance;
-  const queryLevel = getQuerLevel(level);
 
   // add query retrieve level and fetch whole study
   const ts = config.get(ConfParams.XTRANSFER) as string;
@@ -15,7 +14,7 @@ export async function fetchGet (studyUid: string, seriesUid: string, imageUid: s
     tags: [
       {
         key: '00080052',
-        value: level,
+        value: queryLevelToString(level),
       },
       {
         key: '0020000D',
@@ -29,20 +28,20 @@ export async function fetchGet (studyUid: string, seriesUid: string, imageUid: s
     storagePath: config.get(ConfParams.STORAGE_PATH),
   };
 
-  if (queryLevel >= QUERY_LEVEL.SERIES) {
+  if (level >= QUERY_LEVEL.SERIES) {
     getOptions.tags.push({
       key: '0020000E',
       value: seriesUid,
     });
   }
 
-  if (queryLevel >= QUERY_LEVEL.IMAGE) {
+  if (level >= QUERY_LEVEL.IMAGE) {
     getOptions.tags.push({
       key: '00080018',
       value: imageUid,
     });
   }
-  const uidPath = queryLevelToPath(studyUid, seriesUid, imageUid, queryLevel);
+  const uidPath = queryLevelToPath(studyUid, seriesUid, imageUid, level);
 
   return new Promise((resolve, reject) => {
     try {

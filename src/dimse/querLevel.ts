@@ -18,10 +18,23 @@ export function queryLevelToPath (studyUid: string, seriesUid: string, imageUid:
   }
 };
 
+export function queryLevelToString (level: QUERY_LEVEL): string {
+  switch(level)
+  {
+    case QUERY_LEVEL.STUDY: return 'STUDY';
+    case QUERY_LEVEL.SERIES: return 'SERIES';
+    case QUERY_LEVEL.IMAGE: return 'IMAGE';
+    default: return 'STUDY';
+  }
+}
 
-export function getQuerLevel (level: string): QUERY_LEVEL {
-  if (level === 'STUDY') return QUERY_LEVEL.STUDY;
-  if (level === 'SERIES') return QUERY_LEVEL.SERIES;
-  if (level === 'IMAGE') return QUERY_LEVEL.IMAGE;
-  return QUERY_LEVEL.STUDY;
+
+export function stringToQueryLevel (level: string): QUERY_LEVEL {
+  switch(level)
+  {
+    case 'STUDY': return QUERY_LEVEL.STUDY;
+    case 'SERIES': return QUERY_LEVEL.SERIES;
+    case 'IMAGE': return QUERY_LEVEL.IMAGE;
+    default: return QUERY_LEVEL.STUDY;
+  }
 };

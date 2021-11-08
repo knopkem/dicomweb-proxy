@@ -7,12 +7,11 @@ import { doFind } from './dimse/findData';
 import { sendEcho } from './dimse/sendEcho';
 import { doWadoRs } from './dimse/wadoRs';
 import { doWadoUri } from './dimse/wadoUri';
-import { compressFile } from './dimse/compressFile';
 import { startScp, shutdown } from './dimse/store';
-import { fileExists } from './utils/fileHelper';
-import { waitOrFetchData } from './dimse/fetchData';
 import { LoggerSingleton } from './utils/logger';
-import { parseMeta } from './dimse/parseMeta';
+import { fetchMeta } from './dimse/fetchMeta';
+import { QUERY_LEVEL, stringToQueryLevel } from './dimse/querLevel';
+import { fetchMove } from './dimse/fetchMove';
 
 const logger = LoggerSingleton.Instance;
 
@@ -44,17 +43,18 @@ socket.on('connect', () => {
 
 socket.on('qido-request', async (data: any) => {
   logger.info('websocket qido request received, fetching metadata now...');
+  const { level, query } : { level: string, query: any} = data;
 
   if (data) {
     let tags = new Array<string>();
-    if (data.level === 'STUDY') {
+    if (level === 'STUDY') {
       tags = studyLevelTags;
     } else if (data.level === 'SERIES') {
       tags = seriesLevelTags;
     } else if (data.level === 'IMAGE') {
       tags = imageLevelTags;
     }
-    const json = await doFind(data.level, data.query, tags);
+    const json = await doFind(stringToQueryLevel(level), query, tags);
     logger.info('sending websocket response');
     socket.emit(data.uuid, json);
   }
@@ -105,14 +105,14 @@ process.on('SIGINT', async () => {
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies', async (req: any, reply: any) => {
-  const json = await doFind('STUDY', req.query, studyLevelTags);
+  const json = await doFind(QUERY_LEVEL.STUDY, req.query, studyLevelTags);
   reply.send(json);
 });
 
 //------------------------------------------------------------------
 
 server.get('/rs/studies', async (req: any, reply: any) => {
-  const json = await doFind('STUDY', req.query, studyLevelTags);
+  const json = await doFind(QUERY_LEVEL.STUDY, req.query, studyLevelTags);
   reply.send(json);
 });
 
@@ -121,7 +121,7 @@ server.get('/rs/studies', async (req: any, reply: any) => {
 server.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req: any, reply: any) => {
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
-  const json = await doFind('SERIES', query, seriesLevelTags);
+  const json = await doFind(QUERY_LEVEL.SERIES, query, seriesLevelTags);
   reply.send(json);
 });
 
@@ -131,7 +131,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series', async (req: any, reply
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
 
-  const json = await doFind('SERIES', query, seriesLevelTags);
+  const json = await doFind(QUERY_LEVEL.SERIES, query, seriesLevelTags);
   reply.send(json);
 });
 
@@ -142,7 +142,7 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
   query.StudyInstanceUID = params.studyInstanceUid;
   query.SeriesInstanceUID = params.seriesInstanceUid;
 
-  const json = await doFind('IMAGE', query, imageLevelTags);
+  const json = await doFind(QUERY_LEVEL.IMAGE, query, imageLevelTags);
   reply.send(json);
 });
 
@@ -150,47 +150,25 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
   const { query, params } = req;
-  query.StudyInstanceUID = params.studyInstanceUid;
-  query.SeriesInstanceUID = params.seriesInstanceUid;
-
-  const json = await doFind('IMAGE', query, imageLevelTags);
-
-  // make sure c-find worked
-  if (json.length === 0) {
-    logger.error('no metadata found');
-    reply.send(500);
-    return;
-  }
-
-  // check if fetch is needed
-  for (let i = 0; i < json.length; i += 1) {
-    const sopInstanceUid = json[i]['00080018'].Value[0];
-    const storagePath = config.get('storagePath') as string;
-    const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
-    const exists = await fileExists(pathname);
-    if (!exists) {
-      logger.info(`fetching series ${query.SeriesInstanceUID}`);
-      await waitOrFetchData(query.StudyInstanceUID, query.SeriesInstanceUID, '', 'SERIES');
-      break;
-    };
-  }
+  const { studyInstanceUid, seriesInstanceUid } = params;
+    
   try {
-    const result = await parseMeta(json, query);
-    reply.send(result);
+    const rsp = await fetchMeta( query, studyInstanceUid, seriesInstanceUid );
+    reply.send(rsp);
   } catch (error) {
     logger.error(error);
-    reply.send(500);    
+    reply.send(500);
   }
 });
 
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req: any, reply: any) => {
-  const { studyInstanceUid, sopInstanceUid } = req.params;
+  const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
 
   
   try {
-    const rsp = await doWadoRs( {studyInstanceUid, sopInstanceUid} );
+    const rsp = await doWadoRs( {studyInstanceUid, seriesInstanceUid, sopInstanceUid} );
     reply.header('Content-Type', rsp.contentType);
     reply.send(rsp.buffer);
   } catch (error) {

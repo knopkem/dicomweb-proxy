@@ -79,15 +79,15 @@ function parseFile(filename: string): Promise<ElementType> {
   });
 }
 
-export function parseMeta(json: any, query: any): Promise<any> {
+export function parseMeta(json: any, studyInstanceUID: string, eriesInstanceUID: string): Promise<any> {
   const logger = LoggerSingleton.Instance;
-  logger.info(`parsing series ${query.SeriesInstanceUID}`);
+  logger.info(`parsing series ${eriesInstanceUID}`);
 
   const parsing = new Array<Promise<ElementType>>();
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   for (let i = 0; i < json.length; i += 1) {
     const sopInstanceUid = json[i]['00080018'].Value[0];
-    const pathname = path.join(storagePath, query.StudyInstanceUID, sopInstanceUid);
+    const pathname = path.join(storagePath, studyInstanceUID, sopInstanceUid);
     parsing.push(parseFile(pathname));
   }
   return Promise.all(parsing);
