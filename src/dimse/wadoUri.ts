@@ -65,4 +65,4 @@ export async function doWadoUri({studyInstanceUid, seriesInstanceUid, sopInstanc
     const msg = `failed to read ${pathname}`;
     throw msg;
   }
-};
+}

@@ -26,4 +26,4 @@ export async function sendEcho() {
       reject();
     });
   });
-};
+}

@@ -2,7 +2,7 @@ export enum QUERY_LEVEL {
   STUDY,
   SERIES,
   IMAGE,
-};
+}
 
 export const STUDY_LEVEL = 'STUDY';
 export const SERIES_LEVEL = 'SERIES';
@@ -20,7 +20,7 @@ export function queryLevelToPath (studyUid: string, seriesUid: string, imageUid:
     default:
       return `${studyUid}/${seriesUid}`;
   }
-};
+}
 
 export function queryLevelToString (level: QUERY_LEVEL): string {
   switch(level)
@@ -41,7 +41,7 @@ export function stringToQueryLevel (level: string): QUERY_LEVEL {
     case IMAGE_LEVEL: return QUERY_LEVEL.IMAGE;
     default: return QUERY_LEVEL.STUDY;
   }
-};
+}
 
 export function getLockUid (studyUid: string, seriesUid: string, imageUid: string, level: QUERY_LEVEL): string {
   switch(level)
@@ -51,4 +51,4 @@ export function getLockUid (studyUid: string, seriesUid: string, imageUid: strin
     case QUERY_LEVEL.IMAGE: return imageUid;
     default: return studyUid;
   }
-};
+}

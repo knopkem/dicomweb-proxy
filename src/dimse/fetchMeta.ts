@@ -27,12 +27,13 @@ export async function fetchMeta(query: any, studyInstanceUID: string, seriesInst
       logger.info(`fetching series ${seriesInstanceUID}`);
       await waitOrFetchData(studyInstanceUID, seriesInstanceUID, '', QUERY_LEVEL.SERIES);
       break;
-    };
+    }
   }
   try {
     const result = await parseMeta(json, studyInstanceUID, seriesInstanceUID);
     return Promise.resolve(result);
   } catch (error) {
+    logger.error(error);
     throw(error);
   }
 }

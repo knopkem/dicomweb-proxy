@@ -108,4 +108,4 @@ export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
       }
     });
   });
-};
+}

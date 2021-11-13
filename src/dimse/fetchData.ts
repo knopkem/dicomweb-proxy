@@ -27,4 +27,4 @@ export async function waitOrFetchData(studyUid: string, seriesUid: string, image
     lock.set(lockId, promise);
     return promise;
   });
-};
+}

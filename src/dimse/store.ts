@@ -23,7 +23,7 @@ import { LoggerSingleton } from '../utils/logger';
       // currently this will never log
       logger.info(JSON.parse(result));
     });
-  };
+  }
 
   export async function shutdown() {
     const logger = LoggerSingleton.Instance;
@@ -49,4 +49,4 @@ import { LoggerSingleton } from '../utils/logger';
         reject();
       });
     });
-  };
+  }

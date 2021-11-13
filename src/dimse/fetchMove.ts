@@ -65,4 +65,4 @@ export async function fetchMove (studyUid: string, seriesUid: string, imageUid: 
       reject(error);
     }
   });
-};
+}

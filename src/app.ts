@@ -1,17 +1,10 @@
 import path from 'path';
 import fastify from 'fastify';
 import { ConfParams, config } from './utils/config';
-import { doFind } from './dimse/findData';
 import { sendEcho } from './dimse/sendEcho';
-import { doWadoRs } from './dimse/wadoRs';
-import { doWadoUri } from './dimse/wadoUri';
 import { startScp, shutdown } from './dimse/store';
 import { LoggerSingleton } from './utils/logger';
-import { fetchMeta } from './dimse/fetchMeta';
-import { QUERY_LEVEL, stringToQueryLevel } from './dimse/querLevel';
-import { fetchMove } from './dimse/fetchMove';
 import { socket } from './socket';
-import { SocketAddress } from 'net';
 
 const logger = LoggerSingleton.Instance;
 
@@ -26,6 +19,8 @@ server.setNotFoundHandler((req: any, res: any) => {
 server.register(require('fastify-cors'), {});
 server.register(require('fastify-sensible'));
 server.register(require('fastify-helmet'), { contentSecurityPolicy: false });
+server.register(require('./routes'));
+server.register(require('./routes'), { prefix: '/viewer' });
 
 // log exceptions
 process.on('uncaughtException', async (err) => {
@@ -52,123 +47,6 @@ process.on('SIGINT', async () => {
 });
 
 //------------------------------------------------------------------
-
-server.get('/viewer/rs/studies', async (req: any, reply: any) => {
-  try {
-    const json = await doFind(QUERY_LEVEL.STUDY, req.query);
-    reply.send(json);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-
-});
-
-//------------------------------------------------------------------
-
-server.get('/rs/studies', async (req: any, reply: any) => {
-  try {
-    const json = await doFind(QUERY_LEVEL.STUDY, req.query);
-    reply.send(json);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-
-});
-
-//------------------------------------------------------------------
-
-server.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req: any, reply: any) => {
-  const { query, params } = req;
-  query.StudyInstanceUID = params.studyInstanceUid;
-
-  try {
-    const json = await doFind(QUERY_LEVEL.SERIES, query);
-    reply.send(json);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-
-});
-
-//------------------------------------------------------------------
-
-server.get('/viewer/rs/studies/:studyInstanceUid/series', async (req: any, reply: any) => {
-  const { query, params } = req;
-  query.StudyInstanceUID = params.studyInstanceUid;
-
-  try {
-    const json = await doFind(QUERY_LEVEL.SERIES, query);
-    reply.send(json);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-
-});
-
-//------------------------------------------------------------------
-
-server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req: any, reply: any) => {
-  const { query, params } = req;
-  query.StudyInstanceUID = params.studyInstanceUid;
-  query.SeriesInstanceUID = params.seriesInstanceUid;
-
-  try {
-    const json = await doFind(QUERY_LEVEL.IMAGE, query);
-    reply.send(json);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-});
-
-//------------------------------------------------------------------
-
-server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
-  const { query, params } = req;
-  const { studyInstanceUid, seriesInstanceUid } = params;
-
-  try {
-    const rsp = await fetchMeta(query, studyInstanceUid, seriesInstanceUid);
-    reply.send(rsp);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-});
-
-//------------------------------------------------------------------
-
-server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req: any, reply: any) => {
-  const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
-
-  try {
-    const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid });
-    reply.header('Content-Type', rsp.contentType);
-    reply.send(rsp.buffer);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-});
-
-//------------------------------------------------------------------
-
-server.get('/viewer/wadouri', async (req: any, reply: any) => {
-  const { studyUID, seriesUID, objectUID } = req.query;
-
-  try {
-    const rsp = await doWadoUri({ studyInstanceUid: studyUID, seriesInstanceUid: seriesUID, sopInstanceUid: objectUID });
-    reply.header('Content-Type', rsp.contentType);
-    reply.send(rsp.buffer);
-  } catch (error) {
-    logger.error(error);
-    reply.send(500);
-  }
-});
 
 //------------------------------------------------------------------
 

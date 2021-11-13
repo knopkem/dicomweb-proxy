@@ -2,7 +2,7 @@
 import { ConfParams, config } from '../utils/config';
 import { getScu, getScuOptions } from 'dicom-dimse-native';
 import { LoggerSingleton } from '../utils/logger';
-import { QUERY_LEVEL, queryLevelToPath, stringToQueryLevel, queryLevelToString } from './querLevel';
+import { QUERY_LEVEL, queryLevelToPath, queryLevelToString } from './querLevel';
 
 // request data from PACS via c-get or c-move
 export async function fetchGet (studyUid: string, seriesUid: string, imageUid: string, level: QUERY_LEVEL): Promise<any> {
@@ -66,4 +66,4 @@ export async function fetchGet (studyUid: string, seriesUid: string, imageUid: s
       reject(error);
     }
   });
-};
+}
