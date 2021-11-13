@@ -10,6 +10,7 @@ export async function fetchGet (studyUid: string, seriesUid: string, imageUid: s
 
   // add query retrieve level and fetch whole study
   const ts = config.get(ConfParams.XTRANSFER) as string;
+
   const getOptions: getScuOptions = {
     tags: [
       {
