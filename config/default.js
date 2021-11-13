@@ -4,14 +4,14 @@ const config = {};
 config.source = {
   aet: "DICOMWEB_PROXY",
   ip: "127.0.0.1",
-  port: "8888"
+  port: 8888
 };
 
 // our target PACS
 config.target = {
   aet: "CONQUESTSRV1",
   ip: "127.0.0.1",
-  port: "5678"
+  port: 5678
 };
 
 
@@ -48,9 +48,6 @@ config.useFetchLevel = 'SERIES';
 
 config.maxAssociations = 4;
 
-// how long before deleting cache, 0 for eternity
-config.keepCacheInMinutes = 60;
-
 // do not issue c-find if search contains less characters
 config.qidoMinChars = 0;
 
@@ -63,7 +60,7 @@ config.verboseLogging = false;
 // disabled when empty, otherwise use connection url e.g. ws://localhost:6001
 config.websocketUrl = '';
 
-// this is the secret your dicomweb-websocket-bride needs to configure too, make sure to keep it secret, and of course change this default one too ;-) hint: use https://hashgenerator.de/
+// this is the secret your dicomweb-websocket-bride needs to configure too, make sure to keep it secret, and of course change it ;-) hint: use https://hashgenerator.de/
 config.websocketToken = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
 
 module.exports = config;
