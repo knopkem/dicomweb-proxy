@@ -3,7 +3,27 @@ const { Client } = dcmjsDimse;
 const { CEchoRequest } = dcmjsDimse.requests;
 const { Status } = dcmjsDimse.constants;
 
+
 export async function sendEcho() {
+const { Client } = dcmjsDimse;
+const { CFindRequest } = dcmjsDimse.requests;
+const { Status } = dcmjsDimse.constants;
+
+const client = new Client();
+const request = CFindRequest.createSeriesFindRequest({ StudyInstanceUID: '1.3.46.670589.5.2.10.2156913941.892665384.993397' });
+request.on('response', (response: any) => {
+  if (response.getStatus() === Status.Pending && response.hasDataset()) {
+    console.log(response.getDataset());
+  }
+});
+client.addRequest(request);
+client.on('networkError', (e: any) => {
+  console.log('Network error: ', e);
+});
+client.send('127.0.0.1', 5678, 'SCU', 'ANY-SCP');
+}
+
+export async function sendEcho2() {
   const client = new Client();
   const request = new CEchoRequest();
   request.on('response', (response: any) => {
