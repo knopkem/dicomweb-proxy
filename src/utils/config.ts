@@ -13,6 +13,9 @@ export const enum ConfParams {
   FETCH_LEVEL,
   MAX_ASSOCIATIONS,
   C_GET,
+  HTTP_PORT,
+  WEBSOCKET_URL,
+  WEBSOCKET_TOKEN,
 }
 
 const ConfDef: any = new Map([
@@ -27,6 +30,9 @@ const ConfDef: any = new Map([
   [ConfParams.FETCH_LEVEL, 'useFetchLevel'],
   [ConfParams.MAX_ASSOCIATIONS, 'maxAssociations'],
   [ConfParams.C_GET, 'useCget'],
+  [ConfParams.HTTP_PORT, 'webserverPort'],
+  [ConfParams.WEBSOCKET_URL, 'websocketUrl'],
+  [ConfParams.WEBSOCKET_TOKEN, 'websocketToken'],
 ]);
 
 interface IConfig {
@@ -36,11 +42,13 @@ interface IConfig {
 
 class Config implements IConfig {
   get<T>(setting: ConfParams): T {
-    return conf.get(ConfDef.get(setting));
+    const s = ConfDef.get(setting);
+    return conf.get(s);
   }
-  has(setting: ConfParams): boolean  {
-     return conf.has(ConfDef.get(setting));
-   }
+  has(setting: ConfParams): boolean {
+    const s = ConfDef.get(setting);
+    return conf.has(s);
+  }
 }
 
 export const config = new Config();

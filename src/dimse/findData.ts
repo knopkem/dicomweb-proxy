@@ -3,6 +3,7 @@ import { ConfParams, config } from '../utils/config';
 import { LoggerSingleton } from '../utils/logger';
 import { queryLevelToString, QUERY_LEVEL } from "./querLevel";
 import { get_element } from '@iwharris/dicom-data-dictionary';
+import { tagsForLevel } from "./tags";
 
 const findDicomName = (name: string): string | undefined => {
   const dataElement = get_element(name);
@@ -13,7 +14,7 @@ const findDicomName = (name: string): string | undefined => {
 };
 
 
-export async function doFind(level: QUERY_LEVEL, query: any, defaults: string[]): Promise<any> {
+export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
   const logger = LoggerSingleton.Instance;
   logger.info('doFind...');
 
@@ -37,7 +38,9 @@ export async function doFind(level: QUERY_LEVEL, query: any, defaults: string[])
   if (includes) {
     tags = includes.split(',');
   }
-  tags.push(...defaults);
+
+  const defaultTagsForLevel = tagsForLevel(level);
+  tags.push(...defaultTagsForLevel);
 
   // add parsed tags
   tags.forEach((element: any) => {

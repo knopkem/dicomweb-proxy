@@ -4,9 +4,9 @@ export enum QUERY_LEVEL {
   IMAGE,
 };
 
-const STUDY_LEVEL = 'STUDY';
-const SERIES_LEVEL = 'SERIES';
-const IMAGE_LEVEL = 'IMAGE';
+export const STUDY_LEVEL = 'STUDY';
+export const SERIES_LEVEL = 'SERIES';
+export const IMAGE_LEVEL = 'IMAGE';
 
 
 export function queryLevelToPath (studyUid: string, seriesUid: string, imageUid: string, qlevel: QUERY_LEVEL): string {

@@ -3,14 +3,13 @@ import { config, ConfParams} from '../utils/config';
 import { fileExists } from '../utils/fileHelper';
 import { LoggerSingleton } from '../utils/logger';
 import { QUERY_LEVEL } from './querLevel';
-import { imageLevelTags } from './tags';
 import { waitOrFetchData } from './fetchData';
 import { parseMeta } from './parseMeta';
 import path from 'path';
 
 export async function fetchMeta(query: any, studyInstanceUID: string, seriesInstanceUID: string) {
     const logger = LoggerSingleton.Instance;
-  const json = await doFind(QUERY_LEVEL.IMAGE, query, imageLevelTags);
+  const json = await doFind(QUERY_LEVEL.IMAGE, query);
 
   // make sure c-find worked
   if (json.length === 0) {

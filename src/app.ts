@@ -1,8 +1,6 @@
-import config from 'config';
 import path from 'path';
 import fastify from 'fastify';
-import io from 'socket.io-client';
-import { seriesLevelTags, studyLevelTags, imageLevelTags } from './dimse/tags';
+import { ConfParams, config } from './utils/config';
 import { doFind } from './dimse/findData';
 import { sendEcho } from './dimse/sendEcho';
 import { doWadoRs } from './dimse/wadoRs';
@@ -12,12 +10,15 @@ import { LoggerSingleton } from './utils/logger';
 import { fetchMeta } from './dimse/fetchMeta';
 import { QUERY_LEVEL, stringToQueryLevel } from './dimse/querLevel';
 import { fetchMove } from './dimse/fetchMove';
+import { socket } from './socket';
+import { SocketAddress } from 'net';
 
 const logger = LoggerSingleton.Instance;
 
 const server = fastify();
 server.register(require('fastify-static'), {
-  root: path.join(__dirname, '../public'),});
+  root: path.join(__dirname, '../public'),
+});
 
 server.setNotFoundHandler((req: any, res: any) => {
   res.sendFile('index.html');
@@ -25,58 +26,6 @@ server.setNotFoundHandler((req: any, res: any) => {
 server.register(require('fastify-cors'), {});
 server.register(require('fastify-sensible'));
 server.register(require('fastify-helmet'), { contentSecurityPolicy: false });
-
-
-const websocketUrl = config.get('websocketUrl') as string;
-const socket = io(websocketUrl, {
-  reconnection: true,
-  reconnectionDelayMax: 10000,
-  autoConnect: false,
-  auth: {
-    token: config.get('websocketToken'),
-  },
-});
-
-socket.on('connect', () => {
-  logger.info('websocket connection established');
-});
-
-socket.on('qido-request', async (data: any) => {
-  logger.info('websocket qido request received, fetching metadata now...');
-  const { level, query } : { level: string, query: any} = data;
-
-  if (data) {
-    let tags = new Array<string>();
-    if (level === 'STUDY') {
-      tags = studyLevelTags;
-    } else if (data.level === 'SERIES') {
-      tags = seriesLevelTags;
-    } else if (data.level === 'IMAGE') {
-      tags = imageLevelTags;
-    }
-    const json = await doFind(stringToQueryLevel(level), query, tags);
-    logger.info('sending websocket response');
-    socket.emit(data.uuid, json);
-  }
-});
-
-socket.on('wadouri-request', async (data: any) => {
-  logger.info('websocket wadouri request received, fetching metadata now...');
-
-  if (data) {
-    try {
-      const rsp = await doWadoUri(data.query);
-      socket.emit(data.uuid, rsp);
-    } catch (error) {
-      logger.error(error);
-      socket.emit(data.uuid, error);
-    }
-  }
-});
-
-socket.on('disconnect', () => {
-  logger.info('websocket connection disconnected');
-});
 
 // log exceptions
 process.on('uncaughtException', async (err) => {
@@ -95,7 +44,7 @@ process.on('SIGINT', async () => {
   }
   logger.info('shutting down web server...');
   logger.info('webserver shutdown successfully');
-  if (!config.get('useCget')) {
+  if (!config.get(ConfParams.C_GET)) {
     logger.info('shutting down DICOM SCP server...');
     await shutdown();
   }
@@ -105,15 +54,27 @@ process.on('SIGINT', async () => {
 //------------------------------------------------------------------
 
 server.get('/viewer/rs/studies', async (req: any, reply: any) => {
-  const json = await doFind(QUERY_LEVEL.STUDY, req.query, studyLevelTags);
-  reply.send(json);
+  try {
+    const json = await doFind(QUERY_LEVEL.STUDY, req.query);
+    reply.send(json);
+  } catch (error) {
+    logger.error(error);
+    reply.send(500);
+  }
+
 });
 
 //------------------------------------------------------------------
 
 server.get('/rs/studies', async (req: any, reply: any) => {
-  const json = await doFind(QUERY_LEVEL.STUDY, req.query, studyLevelTags);
-  reply.send(json);
+  try {
+    const json = await doFind(QUERY_LEVEL.STUDY, req.query);
+    reply.send(json);
+  } catch (error) {
+    logger.error(error);
+    reply.send(500);
+  }
+
 });
 
 //------------------------------------------------------------------
@@ -121,8 +82,15 @@ server.get('/rs/studies', async (req: any, reply: any) => {
 server.get('/viewer/rs/studies/:studyInstanceUid/metadata', async (req: any, reply: any) => {
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
-  const json = await doFind(QUERY_LEVEL.SERIES, query, seriesLevelTags);
-  reply.send(json);
+
+  try {
+    const json = await doFind(QUERY_LEVEL.SERIES, query);
+    reply.send(json);
+  } catch (error) {
+    logger.error(error);
+    reply.send(500);
+  }
+
 });
 
 //------------------------------------------------------------------
@@ -131,8 +99,14 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series', async (req: any, reply
   const { query, params } = req;
   query.StudyInstanceUID = params.studyInstanceUid;
 
-  const json = await doFind(QUERY_LEVEL.SERIES, query, seriesLevelTags);
-  reply.send(json);
+  try {
+    const json = await doFind(QUERY_LEVEL.SERIES, query);
+    reply.send(json);
+  } catch (error) {
+    logger.error(error);
+    reply.send(500);
+  }
+
 });
 
 //------------------------------------------------------------------
@@ -142,8 +116,13 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
   query.StudyInstanceUID = params.studyInstanceUid;
   query.SeriesInstanceUID = params.seriesInstanceUid;
 
-  const json = await doFind(QUERY_LEVEL.IMAGE, query, imageLevelTags);
-  reply.send(json);
+  try {
+    const json = await doFind(QUERY_LEVEL.IMAGE, query);
+    reply.send(json);
+  } catch (error) {
+    logger.error(error);
+    reply.send(500);
+  }
 });
 
 //------------------------------------------------------------------
@@ -151,9 +130,9 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/insta
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
   const { query, params } = req;
   const { studyInstanceUid, seriesInstanceUid } = params;
-    
+
   try {
-    const rsp = await fetchMeta( query, studyInstanceUid, seriesInstanceUid );
+    const rsp = await fetchMeta(query, studyInstanceUid, seriesInstanceUid);
     reply.send(rsp);
   } catch (error) {
     logger.error(error);
@@ -166,9 +145,8 @@ server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metad
 server.get('/viewer/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req: any, reply: any) => {
   const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
 
-  
   try {
-    const rsp = await doWadoRs( {studyInstanceUid, seriesInstanceUid, sopInstanceUid} );
+    const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid });
     reply.header('Content-Type', rsp.contentType);
     reply.send(rsp.buffer);
   } catch (error) {
@@ -183,7 +161,7 @@ server.get('/viewer/wadouri', async (req: any, reply: any) => {
   const { studyUID, seriesUID, objectUID } = req.query;
 
   try {
-    const rsp = await doWadoUri({studyInstanceUid: studyUID, seriesInstanceUid: seriesUID, sopInstanceUid: objectUID});
+    const rsp = await doWadoUri({ studyInstanceUid: studyUID, seriesInstanceUid: seriesUID, sopInstanceUid: objectUID });
     reply.header('Content-Type', rsp.contentType);
     reply.send(rsp.buffer);
   } catch (error) {
@@ -194,7 +172,7 @@ server.get('/viewer/wadouri', async (req: any, reply: any) => {
 
 //------------------------------------------------------------------
 
-const port = config.get('webserverPort') as number;
+const port = config.get(ConfParams.HTTP_PORT) as number;
 logger.info('starting...');
 server.listen(port, '0.0.0.0', async (err: any, address: any) => {
   if (err) {
@@ -204,11 +182,12 @@ server.listen(port, '0.0.0.0', async (err: any, address: any) => {
   logger.info(`web-server listening on port: ${port}`);
 
   // if not using c-get, start our scp
-  if (!config.get('useCget')) {
+  if (!config.get(ConfParams.C_GET)) {
     startScp();
   }
   sendEcho();
 
+  const websocketUrl = config.get(ConfParams.WEBSOCKET_URL);
   if (websocketUrl) {
     logger.info(`connecting to dicomweb.websocket-bridge: ${websocketUrl}`);
     socket.connect();

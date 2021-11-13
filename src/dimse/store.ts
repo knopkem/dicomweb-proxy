@@ -20,7 +20,7 @@ import { LoggerSingleton } from '../utils/logger';
     logger.info(`pacs-server listening on port: ${options.source?.port}`);
 
     startStoreScp(options, (result: any) => {
-      // currently this will never finish
+      // currently this will never log
       logger.info(JSON.parse(result));
     });
   };
