@@ -1,20 +1,18 @@
 #!/usr/bin/env node
 "use strict";
 
+const os = require('os');
+
 var spawn = require('child_process').spawn;
 console.log('starting dicomweb-proxy...');
 
 process.chdir('./node_modules/dicomweb-proxy');
-const ls = spawn('npx ts-node', ['src/app.js']);
 
-ls.stdout.on('data', (data) => {
-  console.log(`stdout: ${data}`);
-});
+if (os.platform() === 'win32') {
+  var cmd = 'npm.cmd'
+} else {
+  var cmd = 'npm'
+}
 
-ls.stderr.on('data', (data) => {
-  console.error(`stderr: ${data}`);
-});
+spawn('npx.cmd', [ 'ts-node', 'src/app.ts'], {stdio: 'inherit'});
 
-ls.on('close', (code) => {
-  console.log(`child process exited with code ${code}`);
-});
