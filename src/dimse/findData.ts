@@ -1,16 +1,13 @@
 import { findScu, findScuOptions } from "dicom-dimse-native";
 import { ConfParams, config } from '../utils/config';
 import { LoggerSingleton } from '../utils/logger';
-import * as dict from 'dicom-data-dictionary';
 import { queryLevelToString, QUERY_LEVEL } from "./querLevel";
+import { get_element } from '@iwharris/dicom-data-dictionary';
 
-const findDicomName = (name: string) => {
-  // eslint-disable-next-line no-restricted-syntax
-  for (const key of Object.keys(dict.standardDataElements)) {
-    const value = dict.standardDataElements[key];
-    if (value.name === name) {
-      return key;
-    }
+const findDicomName = (name: string): string | undefined => {
+  const dataElement = get_element(name);
+  if (dataElement) {
+    return dataElement.tag.replace('(', '').replace(',', '').replace(')', '');
   }
   return undefined;
 };
@@ -45,7 +42,9 @@ export async function doFind(level: QUERY_LEVEL, query: any, defaults: string[])
   // add parsed tags
   tags.forEach((element: any) => {
     const tagName = findDicomName(element) || element;
-    options.tags.push({ key: tagName, value: '' });
+    if (tagName) {
+      options.tags.push({ key: tagName, value: '' });
+    }
   });
 
   // add search param

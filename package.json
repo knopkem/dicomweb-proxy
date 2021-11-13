@@ -26,8 +26,8 @@
   },
   "homepage": "https://github.com/knopkem/dicomweb-proxy#readme",
   "dependencies": {
+    "@iwharris/dicom-data-dictionary": "^1.26.0",
     "config": "^3.3.6",
-    "dicom-data-dictionary": "^0.3.1",
     "dicom-dimse-native": "^2.0.0",
     "dicom-parser": "^1.8.11",
     "fastify": "^3.22.0",
