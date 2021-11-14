@@ -72,6 +72,8 @@ module.exports = function(server: any, opts: any, done: any) {
     server.get('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
         const { query, params } = req;
         const { studyInstanceUid, seriesInstanceUid } = params;
+        query.StudyInstanceUID = studyInstanceUid;
+        query.SeriesInstanceUID = seriesInstanceUid;
 
         try {
             const rsp = await fetchMeta(query, studyInstanceUid, seriesInstanceUid);

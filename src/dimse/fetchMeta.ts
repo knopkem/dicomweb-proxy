@@ -14,7 +14,6 @@ export async function fetchMeta(query: any, studyInstanceUID: string, seriesInst
   // make sure c-find worked
   if (json.length === 0) {
     throw ('no metadata found');
-    return;
   }
 
   // check if fetch is needed

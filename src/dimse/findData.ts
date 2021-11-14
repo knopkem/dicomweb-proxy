@@ -16,7 +16,6 @@ const findDicomName = (name: string): string | undefined => {
 
 export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
   const logger = LoggerSingleton.Instance;
-  logger.info('doFind...');
 
   // add query retrieve level
   const options: findScuOptions = {
