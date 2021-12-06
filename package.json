@@ -32,7 +32,7 @@
     "@types/socket.io-client": "^3.0.0",
     "@iwharris/dicom-data-dictionary": "^1.26.0",
     "config": "^3.3.6",
-    "dicom-dimse-native": "^2.0.0",
+    "dicom-dimse-native": "^2.0.1",
     "dicom-parser": "^1.8.11",
     "fastify": "^3.22.0",
     "fastify-compress": "^3.6.0",
