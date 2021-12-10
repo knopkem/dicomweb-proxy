@@ -28,7 +28,7 @@
   "dependencies": {
     "@types/config": "^0.0.40",
     "@types/shelljs": "^0.8.9",
-    "@types/node": "^16.11.1",
+    "@types/node": "^16.11.8",
     "@types/socket.io-client": "^3.0.0",
     "@iwharris/dicom-data-dictionary": "^1.26.0",
     "config": "^3.3.6",
