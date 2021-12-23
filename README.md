@@ -55,7 +55,7 @@ config.source = {
 };
 ```
 
-* change target to your PACS
+* change peers to your PACS
 
 ```
 config.target = {

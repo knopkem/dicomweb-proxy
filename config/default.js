@@ -8,11 +8,13 @@ config.source = {
 };
 
 // our target PACS
-config.target = {
+config.peers = [
+  {
   aet: "CONQUESTSRV1",
   ip: "127.0.0.1",
   port: 5678
-};
+}
+];
 
 
 /*

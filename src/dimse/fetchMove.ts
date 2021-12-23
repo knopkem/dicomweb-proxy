@@ -1,11 +1,25 @@
 
 import { ConfParams, config } from '../utils/config';
-import { moveScu, moveScuOptions } from 'dicom-dimse-native';
+import { moveScu, moveScuOptions, Node as DicomNode } from 'dicom-dimse-native';
 import { LoggerSingleton } from '../utils/logger';
 import { QUERY_LEVEL, queryLevelToPath, queryLevelToString } from './querLevel';
 
-// request data from PACS via c-get or c-move
 export async function fetchMove (studyUid: string, seriesUid: string, imageUid: string, level: QUERY_LEVEL): Promise<any> {
+  const peers =  config.get(ConfParams.PEERS) as DicomNode[];
+
+  const promises: Array<Promise<any>> = [];
+
+  peers.forEach(peer => {
+      promises.push(sendCMoveRequest(studyUid, seriesUid, imageUid, level, peer))    
+  });
+
+  return Promise.all(promises);
+
+}
+
+
+// request data from PACS via c-get or c-move
+export async function sendCMoveRequest(studyUid: string, seriesUid: string, imageUid: string, level: QUERY_LEVEL, target: DicomNode): Promise<any> {
   const logger = LoggerSingleton.Instance;
 
   // add query retrieve level and fetch whole study
@@ -24,7 +38,7 @@ export async function fetchMove (studyUid: string, seriesUid: string, imageUid: 
     destination: config.get(ConfParams.SOURCE), 
     netTransferPrefer: ts,
     source: config.get(ConfParams.SOURCE),
-    target: config.get(ConfParams.TARGET),
+    target,
     verbose: config.get(ConfParams.VERBOSE) as boolean,
   };
 

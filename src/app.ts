@@ -48,8 +48,6 @@ process.on('SIGINT', async () => {
 
 //------------------------------------------------------------------
 
-//------------------------------------------------------------------
-
 const port = config.get(ConfParams.HTTP_PORT) as number;
 logger.info('starting...');
 server.listen(port, '0.0.0.0', async (err: any, address: any) => {

@@ -9,7 +9,7 @@ import { LoggerSingleton } from '../utils/logger';
 
     const options: storeScpOptions = {
       source: config.get(ConfParams.SOURCE),
-      peers: [config.get(ConfParams.TARGET)],
+      peers: config.get(ConfParams.PEERS),
       storagePath: config.get(ConfParams.STORAGE_PATH),
       netTransferPrefer: ts,
       netTransferPropose: ts,

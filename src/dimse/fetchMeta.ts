@@ -6,10 +6,11 @@ import { QUERY_LEVEL } from './querLevel';
 import { waitOrFetchData } from './fetchData';
 import { parseMeta } from './parseMeta';
 import path from 'path';
+import deepmerge from "deepmerge";
 
 export async function fetchMeta(query: any, studyInstanceUID: string, seriesInstanceUID: string) {
     const logger = LoggerSingleton.Instance;
-  const json = await doFind(QUERY_LEVEL.IMAGE, query);
+  const json = deepmerge.all(await doFind(QUERY_LEVEL.IMAGE, query)) as any;
 
   // make sure c-find worked
   if (json.length === 0) {

@@ -1,4 +1,4 @@
-import { findScu, findScuOptions } from "dicom-dimse-native";
+import { findScu, findScuOptions, Node as DicomNode } from "dicom-dimse-native";
 import { ConfParams, config } from '../utils/config';
 import { LoggerSingleton } from '../utils/logger';
 import { queryLevelToString, QUERY_LEVEL } from "./querLevel";
@@ -13,8 +13,21 @@ const findDicomName = (name: string): string | undefined => {
   return undefined;
 };
 
-
 export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
+
+  const peers =  config.get(ConfParams.PEERS) as DicomNode[];
+
+  const promises: Array<Promise<any>> = [];
+
+  peers.forEach(peer => {
+      promises.push(sendCFindRequest(level, peer, query))    
+  });
+
+  return Promise.all(promises);
+}
+
+
+export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, query: any): Promise<any> {
   const logger = LoggerSingleton.Instance;
 
   // add query retrieve level
@@ -26,7 +39,7 @@ export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
       },
     ],
     source: config.get(ConfParams.SOURCE),
-    target: config.get(ConfParams.TARGET),
+    target,
     verbose: config.get(ConfParams.VERBOSE),
   };
 

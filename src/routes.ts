@@ -5,12 +5,14 @@ import { doWadoRs } from "./dimse/wadoRs";
 import { doWadoUri } from "./dimse/wadoUri";
 import { LoggerSingleton } from "./utils/logger";
 
+import deepmerge from "deepmerge";
+
 const logger = LoggerSingleton.Instance;
 module.exports = function(server: any, opts: any, done: any) {
 
     server.get('/rs/studies', async (req: any, reply: any) => {
         try {
-            const json = await doFind(QUERY_LEVEL.STUDY, req.query);
+            const json = deepmerge.all(await doFind(QUERY_LEVEL.STUDY, req.query));
             reply.send(json);
         } catch (error) {
             logger.error(error);
@@ -26,7 +28,7 @@ module.exports = function(server: any, opts: any, done: any) {
         query.StudyInstanceUID = params.studyInstanceUid;
 
         try {
-            const json = await doFind(QUERY_LEVEL.SERIES, query);
+            const json = deepmerge.all(await doFind(QUERY_LEVEL.SERIES, query));
             reply.send(json);
         } catch (error) {
             logger.error(error);
@@ -42,7 +44,7 @@ module.exports = function(server: any, opts: any, done: any) {
         query.StudyInstanceUID = params.studyInstanceUid;
 
         try {
-            const json = await doFind(QUERY_LEVEL.SERIES, query);
+            const json = deepmerge.all(await doFind(QUERY_LEVEL.SERIES, query));
             reply.send(json);
         } catch (error) {
             logger.error(error);
@@ -59,7 +61,7 @@ module.exports = function(server: any, opts: any, done: any) {
         query.SeriesInstanceUID = params.seriesInstanceUid;
 
         try {
-            const json = await doFind(QUERY_LEVEL.IMAGE, query);
+            const json = deepmerge.all(await doFind(QUERY_LEVEL.IMAGE, query));
             reply.send(json);
         } catch (error) {
             logger.error(error);
