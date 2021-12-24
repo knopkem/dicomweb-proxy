@@ -20,7 +20,7 @@ function parseFile(filename: string): Promise<ElementType> {
         return reject();
       }
 
-      fs.promises.readFile(filename).then((data: any) => {
+      fs.promises.readFile(filename).then((data: Uint8Array) => {
         const dataset = dicomParser.parseDicom(data);
 
         // parse additional needed attributes
@@ -34,7 +34,7 @@ function parseFile(filename: string): Promise<ElementType> {
         const rows = dataset.uint16('x00280010');
         const cols = dataset.uint16('x00280011');
         const pixelSpacingString = dataset.string('x00280030');
-        const pixelSpacing = pixelSpacingString ? pixelSpacingString.split('\\').map((e: any) => parseFloat(e)) : [1, 1];
+        const pixelSpacing = pixelSpacingString ? pixelSpacingString.split('\\').map((e: string) => parseFloat(e)) : [1, 1];
         const modality = dataset.string('x00080060');
         const samplesPerPixel = dataset.uint16('x00280002');
         const photometricInterpretation = dataset.string('x00280004');
@@ -46,9 +46,9 @@ function parseFile(filename: string): Promise<ElementType> {
         const rescaleIntercept = parseFloat(dataset.string('x00281052'));
         const rescaleSlope = parseFloat(dataset.string('x00281053'));
         const iopString = dataset.string('x00200037');
-        const iop = iopString ? iopString.split('\\').map((e: any) => parseFloat(e)) : null;
+        const iop = iopString ? iopString.split('\\').map((e: string) => parseFloat(e)) : null;
         const ippString = dataset.string('x00200032');
-        const ipp = ippString ? ippString.split('\\').map((e: any) => parseFloat(e)) : null;
+        const ipp = ippString ? ippString.split('\\').map((e: string) => parseFloat(e)) : null;
 
         // append to all results
         const result: ElementType = {
@@ -79,7 +79,7 @@ function parseFile(filename: string): Promise<ElementType> {
   });
 }
 
-export function parseMeta(json: any, studyInstanceUID: string, eriesInstanceUID: string): Promise<any> {
+export function parseMeta(json: any, studyInstanceUID: string, eriesInstanceUID: string): Promise<unknown> {
   const logger = LoggerSingleton.Instance;
   logger.info(`parsing series ${eriesInstanceUID}`);
 

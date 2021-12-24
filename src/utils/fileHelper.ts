@@ -1,4 +1,3 @@
-import path from 'path';
 import fs from 'fs';
 
 export async function fileExists(pathname: string): Promise<boolean> {
@@ -7,4 +6,4 @@ export async function fileExists(pathname: string): Promise<boolean> {
       err ? resolve(false) : resolve(true);
     });
   });
-};
+}

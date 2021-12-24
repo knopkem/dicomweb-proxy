@@ -27,7 +27,7 @@ export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
 }
 
 
-export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, query: any): Promise<any> {
+export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, query: any): Promise<unknown> {
   const logger = LoggerSingleton.Instance;
 
   // add query retrieve level
@@ -55,7 +55,7 @@ export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, qu
   tags.push(...defaultTagsForLevel);
 
   // add parsed tags
-  tags.forEach((element: any) => {
+  tags.forEach((element: string) => {
     const tagName = findDicomName(element) || element;
     if (tagName) {
       options.tags.push({ key: tagName, value: '' });
@@ -92,7 +92,7 @@ export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, qu
     if (invalidInput) {
       resolve([]);
     }
-    findScu(options, (result: any) => {
+    findScu(options, (result: string) => {
       if (result && result.length > 0) {
         try {
           const json = JSON.parse(result);

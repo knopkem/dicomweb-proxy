@@ -26,7 +26,7 @@ export async function sendCEchoRequest(target: DicomNode ) {
   logger.info(`sending C-ECHO to target: ${options.target?.aet}`);
 
   return new Promise((resolve, reject) => {
-    echoScu(options, (result: any) => {
+    echoScu(options, (result: string) => {
       if (result && result.length > 0) {
         try {
           logger.info(JSON.parse(result));

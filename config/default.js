@@ -2,20 +2,24 @@ const config = {};
 
 // our SCP (only used if useCget is false
 config.source = {
-  aet: "DICOMWEB_PROXY",
-  ip: "127.0.0.1",
-  port: 8888
+  aet: 'DICOMWEB_PROXY',
+  ip: '127.0.0.1',
+  port: 8888,
 };
 
 // our target PACS
 config.peers = [
   {
-  aet: "CONQUESTSRV1",
-  ip: "127.0.0.1",
-  port: 5678
-}
+    aet: 'CONQUESTSRV1',
+    ip: '127.0.0.1',
+    port: 5678,
+  },
+  {
+    aet: 'CONQUESTSRV2',
+    ip: '127.0.0.1',
+    port: 5679,
+  },
 ];
-
 
 /*
 Supported Transfer Syntaxes:
@@ -34,10 +38,10 @@ Supported Transfer Syntaxes:
 config.transferSyntax = '1.2.840.10008.1.2.4.80';
 
 // log directory
-config.logDir = "./logs";
+config.logDir = './logs';
 
 // cache directory
-config.storagePath = "./data";
+config.storagePath = './data';
 
 // webserver port
 config.webserverPort = 5000;
@@ -63,6 +67,7 @@ config.verboseLogging = false;
 config.websocketUrl = '';
 
 // this is the secret your dicomweb-websocket-bride needs to configure too, make sure to keep it secret, and of course change it ;-) hint: use https://hashgenerator.de/
-config.websocketToken = 'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
+config.websocketToken =
+  'cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e';
 
 module.exports = config;
