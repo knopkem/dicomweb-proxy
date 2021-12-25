@@ -3,19 +3,19 @@
 A proxy to translate between dicomweb and traditional dicom dimse services
 
 ## Description
-* A nodejs tool to easily connect a DICOMWEB capable DICOM viewer to a legacy PACS that only knows DIMSE services.  
-Comes with preinstalled OHIF DICOM Web Viewer (version 4.9.21).
+* A nodejs tool to easily connect a DICOMWEB capable DICOM viewer to one or more legacy PACS that only know DIMSE services.  
+Comes with preinstalled [OHIF DICOM Web Viewer](https://github.com/OHIF/Viewers) (version 4.9.21).
 
 ## What is it for?
 
-* if you want to view image data from a legacy PACS that does not understand DICOMWEB nor comes with a web-viewer
+* if you want to view image data from one or more legacy PACS that does not understand DICOMWEB nor come with a web-viewer
 
 ## How does it work?
 
-* the app should be installed within the hospital intranet and configured to connect via DIMSE networking to a PACS
-* it hosts a default DICOMweb viewer (ohif) which can be replaced
+* the app should be installed within the hospital intranet and configured to connect via DIMSE networking to on or more PACS
+* it hosts a default DICOMweb viewer (OHIF) which can be replaced
 * the webserver exposes the default QIDO and WADOURI API needed for the viewer
-* optionally: you can connect to a DICOMWEB-WEBSOCKET-BRIDGE and expose the data to the public (handle with care!)
+* optionally: you can connect to a [DICOMWEB-WEBSOCKET-BRIDGE](https://github.com/knopkem/dicomweb-websocket-bridge) and expose the data to the public (handle with care!)
 
 ## Prerequisite
 
@@ -30,7 +30,8 @@ Comes with preinstalled OHIF DICOM Web Viewer (version 4.9.21).
 * update config file located in:  
 ```./node_modules/dicomweb-proxy/config```
 
-* or better: create config override, see: 
+* or better: create config override, see:
+
 [config](https://www.npmjs.com/package/config)
 
 * start proxy:  
