@@ -1,6 +1,6 @@
 {
   "name": "dicomweb-proxy",
-  "version": "1.3.3",
+  "version": "1.4.0",
   "description": "A proxy to translate between dicomweb and dimse",
   "main": "app.js",
   "scripts": {
