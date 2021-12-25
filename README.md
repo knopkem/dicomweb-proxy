@@ -1,10 +1,10 @@
 # dicomweb-proxy
 
-A proxy to translate between dicomweb and traditional dicom dimse services
+A proxy to translate between [DICOMWEB](https://www.dicomstandard.org/dicomweb) and traditional DICOM [DIMSE](https://dicom.nema.org/medical/dicom/current/output/chtml/part07/sect_7.5.html) services
 
 ## Description
 * A nodejs tool to easily connect a DICOMWEB capable DICOM viewer to one or more legacy PACS that only know DIMSE services.  
-Comes with preinstalled [OHIF DICOM Web Viewer](https://github.com/OHIF/Viewers) (version 4.9.21).
+Comes preinstalled with the popular [OHIF DICOM Web Viewer](https://github.com/OHIF/Viewers) (version 4.9.21).
 
 ## What is it for?
 
@@ -12,9 +12,9 @@ Comes with preinstalled [OHIF DICOM Web Viewer](https://github.com/OHIF/Viewers)
 
 ## How does it work?
 
-* the app should be installed within the hospital intranet and configured to connect via DIMSE networking to on or more PACS
+* the app should be installed within the hospital intranet and configured to connect via DIMSE networking to on or more PACS (peers)
 * it hosts a default DICOMweb viewer (OHIF) which can be replaced
-* the webserver exposes the default QIDO and WADOURI API needed for the viewer
+* the webserver exposes the default QIDO and WADOURI/WADORS API needed for the viewer and converts on the fly between the two protocols
 * optionally: you can connect to a [DICOMWEB-WEBSOCKET-BRIDGE](https://github.com/knopkem/dicomweb-websocket-bridge) and expose the data to the public (handle with care!)
 
 ## Prerequisite
