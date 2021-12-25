@@ -55,14 +55,14 @@ config.source = {
 };
 ```
 
-* change target to your PACS
+* change peer(s) to your PACS
 
 ```
-config.target = {
+config.peers = [{
   aet: "TARGET_AET",
   ip: "TARGET_IP",
   port: "TARGET_PORT"
-};
+}, { more peers here...}];
 ```
 
 * in case your PACS does not support C-GET, switch to C-Move:  

@@ -14,7 +14,7 @@
 
     // run find scu and return json response
     return new Promise((resolve, reject) => {
-      recompress(options, (result: any) => {
+      recompress(options, (result: string) => {
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);

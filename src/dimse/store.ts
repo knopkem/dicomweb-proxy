@@ -9,7 +9,7 @@ import { LoggerSingleton } from '../utils/logger';
 
     const options: storeScpOptions = {
       source: config.get(ConfParams.SOURCE),
-      peers: [config.get(ConfParams.TARGET)],
+      peers: config.get(ConfParams.PEERS),
       storagePath: config.get(ConfParams.STORAGE_PATH),
       netTransferPrefer: ts,
       netTransferPropose: ts,
@@ -19,7 +19,7 @@ import { LoggerSingleton } from '../utils/logger';
     };
     logger.info(`pacs-server listening on port: ${options.source?.port}`);
 
-    startStoreScp(options, (result: any) => {
+    startStoreScp(options, (result: string) => {
       // currently this will never log
       logger.info(JSON.parse(result));
     });
@@ -36,7 +36,7 @@ import { LoggerSingleton } from '../utils/logger';
     logger.info(`sending shutdown request to target: ${options.target?.aet}`);
 
     return new Promise((resolve, reject) => {
-      shutdownScu(options, (result: any) => {
+      shutdownScu(options, (result: string) => {
         if (result && result.length > 0) {
           try {
             logger.info(JSON.parse(result));
