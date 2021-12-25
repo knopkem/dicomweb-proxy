@@ -15,11 +15,12 @@ export async function fetchMeta(query: any, studyInstanceUID: string, seriesInst
 
   for (let i = 0; i < peers.length; i++) {
     const peer = peers[i];
-    logger.info(`starting with peer: ${peer.aet}`);
+    logger.info(`checking peer for data: ${peer.aet}`);
     const json = (await sendCFindRequest(QUERY_LEVEL.IMAGE, peer, query)) as any;
 
     // make sure c-find worked
     if (json.length === 0) {
+      logger.info(`no data found on peer: ${peer.aet}`);
       continue;
     }
 
