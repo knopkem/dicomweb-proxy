@@ -30,9 +30,7 @@ Comes preinstalled with the popular [OHIF DICOM Web Viewer](https://github.com/O
 * update config file located in:  
 ```./node_modules/dicomweb-proxy/config```
 
-* or better: create config override, see:
-
-[config](https://www.npmjs.com/package/config)
+* or better: create config override, see: [config](https://www.npmjs.com/package/config)
 
 * start proxy:  
 ```npx dicomweb-proxy```
