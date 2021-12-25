@@ -2,20 +2,19 @@ import { ConfParams, config } from '../utils/config';
 import { echoScu, echoScuOptions, Node as DicomNode } from 'dicom-dimse-native';
 import { LoggerSingleton } from '../utils/logger';
 
-
 export async function sendEcho() {
-  const peers =  config.get(ConfParams.PEERS) as DicomNode[];
+  const peers = config.get(ConfParams.PEERS) as DicomNode[];
 
   const promises: Array<Promise<any>> = [];
 
-  peers.forEach(peer => {
-      promises.push(sendCEchoRequest(peer))    
+  peers.forEach((peer) => {
+    promises.push(sendCEchoRequest(peer));
   });
 
   return Promise.all(promises);
 }
 
-export async function sendCEchoRequest(target: DicomNode ) {
+export async function sendCEchoRequest(target: DicomNode) {
   const logger = LoggerSingleton.Instance;
   const options: echoScuOptions = {
     source: config.get(ConfParams.SOURCE),

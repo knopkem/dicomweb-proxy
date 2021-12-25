@@ -1,4 +1,4 @@
-import { QUERY_LEVEL } from "./querLevel";
+import { QUERY_LEVEL } from './querLevel';
 
 export const studyLevelTags: Array<string> = [
   '00080005',

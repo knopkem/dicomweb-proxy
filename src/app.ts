@@ -1,4 +1,5 @@
 import path from 'path';
+import { promises } from 'fs';
 import fastify from 'fastify';
 import { ConfParams, config } from './utils/config';
 import { sendEcho } from './dimse/sendEcho';
@@ -21,6 +22,40 @@ server.register(require('fastify-sensible'));
 server.register(require('fastify-helmet'), { contentSecurityPolicy: false });
 server.register(require('./routes'));
 server.register(require('./routes'), { prefix: '/viewer' });
+
+//------------------------------------------------------------------
+
+const getDirectories = async (source: any) =>
+  (await promises.readdir(source, { withFileTypes: true })).filter((dirent: any) => dirent.isDirectory()).map((dirent: any) => dirent.name);
+
+//------------------------------------------------------------------
+
+const clearCache = async () => {
+  logger.info('checking for stale cache directories...');
+  const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
+  const retention = config.get(ConfParams.CACHE_RETENTION) as number;
+
+  if (retention < 0) {
+    logger.warn('cache cleanup disabled');
+    return;
+  }
+
+  const dirs = await getDirectories(storagePath);
+  const dateNow = new Date();
+
+  for (const dir of dirs) {
+    const filepath = path.join(storagePath, dir);
+    const stats = await promises.stat(filepath);
+    const mtime = stats.mtime;
+    const minutes = (dateNow.getTime() - mtime.getTime()) / 60000;
+    if (minutes > retention) {
+      logger.info(`removing: ${filepath}`);
+      await promises.rm(filepath, { recursive: true, force: true });
+    }
+  }
+};
+
+//------------------------------------------------------------------
 
 // log exceptions
 process.on('uncaughtException', async (err) => {
@@ -68,6 +103,10 @@ server.listen(port, '0.0.0.0', async (err: any, address: any) => {
     logger.info(`connecting to dicomweb.websocket-bridge: ${websocketUrl}`);
     socket.connect();
   }
+
+  // running clear cache and setup for 1h checks
+  clearCache();
+  setInterval(clearCache, 60000);
 });
 
 //------------------------------------------------------------------

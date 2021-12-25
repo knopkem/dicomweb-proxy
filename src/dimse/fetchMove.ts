@@ -1,4 +1,3 @@
-
 import { ConfParams, config } from '../utils/config';
 import { moveScu, moveScuOptions, Node as DicomNode } from 'dicom-dimse-native';
 import { LoggerSingleton } from '../utils/logger';
@@ -21,7 +20,7 @@ export async function fetchMove(studyUid: string, seriesUid: string, imageUid: s
         value: studyUid,
       },
     ],
-    destination: config.get(ConfParams.SOURCE), 
+    destination: config.get(ConfParams.SOURCE),
     netTransferPrefer: ts,
     source: config.get(ConfParams.SOURCE),
     target,

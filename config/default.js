@@ -7,18 +7,13 @@ config.source = {
   port: 8888,
 };
 
-// our target PACS
+// define DICOM peers here
 config.peers = [
   {
     aet: 'CONQUESTSRV1',
     ip: '127.0.0.1',
     port: 5678,
-  },
-  {
-    aet: 'CONQUESTSRV2',
-    ip: '127.0.0.1',
-    port: 5679,
-  },
+  }
 ];
 
 /*
@@ -43,6 +38,9 @@ config.logDir = './logs';
 // cache directory
 config.storagePath = './data';
 
+// keep cache alive for how long after storage or -1 to disable
+config.cacheRetentionMinutes = 60;
+
 // webserver port
 config.webserverPort = 5000;
 
@@ -52,6 +50,7 @@ config.useCget = true;
 // define which level to use for C-Move/C-Get fetches: STUDY, SERIES, IMAGE
 config.useFetchLevel = 'SERIES';
 
+// number of associations to PACS run in parallel
 config.maxAssociations = 4;
 
 // do not issue c-find if search contains less characters

@@ -1,4 +1,3 @@
-
 import { ConfParams, config } from '../utils/config';
 import { LoggerSingleton } from '../utils/logger';
 import { fileExists } from '../utils/fileHelper';
@@ -17,7 +16,7 @@ type WadoUriResponse = {
   contentType: string;
   buffer: Buffer;
 };
-export async function doWadoUri({studyInstanceUid, seriesInstanceUid, sopInstanceUid}: WadoUriArgs): Promise<WadoUriResponse> {
+export async function doWadoUri({ studyInstanceUid, seriesInstanceUid, sopInstanceUid }: WadoUriArgs): Promise<WadoUriResponse> {
   const logger = LoggerSingleton.Instance;
   const fetchLevel = config.get(ConfParams.FETCH_LEVEL) as string;
   const level = stringToQueryLevel(fetchLevel);
@@ -56,7 +55,7 @@ export async function doWadoUri({studyInstanceUid, seriesInstanceUid, sopInstanc
   // read file from file system
   const fsPromise = fs.promises;
   try {
-    return  {
+    return {
       contentType: 'application/dicom',
       buffer: await fsPromise.readFile(pathname),
     };

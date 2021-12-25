@@ -25,10 +25,10 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
   const pathname = path.join(studyPath, sopInstanceUid);
 
   const exists = await fileExists(pathname);
-    if (!exists) {
-      logger.info(`fetching series ${seriesInstanceUid}`);
-      await waitOrFetchData(studyInstanceUid, seriesInstanceUid, '', QUERY_LEVEL.SERIES);
-    }
+  if (!exists) {
+    logger.info(`fetching series ${seriesInstanceUid}`);
+    await waitOrFetchData(studyInstanceUid, seriesInstanceUid, '', QUERY_LEVEL.SERIES);
+  }
 
   try {
     // for now we need to use uncompressed images as there is a problem with streaming compressed

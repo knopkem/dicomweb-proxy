@@ -16,6 +16,7 @@ export const enum ConfParams {
   HTTP_PORT,
   WEBSOCKET_URL,
   WEBSOCKET_TOKEN,
+  CACHE_RETENTION,
 }
 
 const ConfDef: any = new Map([
@@ -33,6 +34,7 @@ const ConfDef: any = new Map([
   [ConfParams.HTTP_PORT, 'webserverPort'],
   [ConfParams.WEBSOCKET_URL, 'websocketUrl'],
   [ConfParams.WEBSOCKET_TOKEN, 'websocketToken'],
+  [ConfParams.CACHE_RETENTION, 'cacheRetentionMinutes'],
 ]);
 
 interface IConfig {

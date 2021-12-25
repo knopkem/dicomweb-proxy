@@ -1,9 +1,7 @@
-
 import { ConfParams, config } from '../utils/config';
 import { getScu, getScuOptions, Node as DicomNode } from 'dicom-dimse-native';
 import { LoggerSingleton } from '../utils/logger';
 import { QUERY_LEVEL, queryLevelToPath, queryLevelToString } from './querLevel';
-
 
 // request data from PACS via c-get or c-move
 export async function fetchGet(studyUid: string, seriesUid: string, imageUid: string, level: QUERY_LEVEL, target: DicomNode): Promise<unknown> {
