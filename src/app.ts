@@ -1,5 +1,5 @@
 import path from 'path';
-import fastify from 'fastify';
+import fastify, { FastifyReply, FastifyRequest, FastifyInstance } from 'fastify';
 import fastifyStatic from 'fastify-static';
 import fastifyCors from 'fastify-cors';
 import fastifySensible from 'fastify-sensible';
@@ -15,12 +15,12 @@ import { socket } from './socket';
 
 const logger = LoggerSingleton.Instance;
 
-const server = fastify();
+const server: FastifyInstance = fastify();
 server.register(fastifyStatic, {
   root: path.join(__dirname, '../public'),
 });
 
-server.setNotFoundHandler((req: any, res: any) => {
+server.setNotFoundHandler((req: FastifyRequest, res: FastifyReply) => {
   res.sendFile('index.html');
 });
 server.register(fastifyCors, {});
@@ -36,8 +36,8 @@ server.register(fastifyAutoload, {
 
 //------------------------------------------------------------------
 
-const getDirectories = async (source: any) =>
-  (await promises.readdir(source, { withFileTypes: true })).filter((dirent: any) => dirent.isDirectory()).map((dirent: any) => dirent.name);
+const getDirectories = async (source: string) =>
+  (await promises.readdir(source, { withFileTypes: true })).filter((dirent) => dirent.isDirectory()).map((dirent) => dirent.name);
 
 //------------------------------------------------------------------
 
@@ -96,7 +96,7 @@ process.on('SIGINT', async () => {
 
 const port = config.get(ConfParams.HTTP_PORT) as number;
 logger.info('starting...');
-server.listen(port, '0.0.0.0', async (err: any, address: any) => {
+server.listen(port, '0.0.0.0', async (err, address) => {
   if (err) {
     await logger.error(err, address);
     process.exit(1);

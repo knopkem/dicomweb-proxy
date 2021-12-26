@@ -5,7 +5,7 @@ import { LoggerSingleton } from '../utils/logger';
 export async function sendEcho() {
   const peers = config.get(ConfParams.PEERS) as DicomNode[];
 
-  const promises: Array<Promise<any>> = [];
+  const promises: Array<Promise<unknown>> = [];
 
   peers.forEach((peer) => {
     promises.push(sendCEchoRequest(peer));

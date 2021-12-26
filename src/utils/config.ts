@@ -19,7 +19,7 @@ export const enum ConfParams {
   CACHE_RETENTION,
 }
 
-const ConfDef: any = new Map([
+const ConfDef = new Map([
   [ConfParams.LOG_DIR, 'logDir'],
   [ConfParams.STORAGE_PATH, 'storagePath'],
   [ConfParams.XTRANSFER, 'transferSyntax'],
@@ -45,11 +45,14 @@ interface IConfig {
 class Config implements IConfig {
   get<T>(setting: ConfParams): T {
     const s = ConfDef.get(setting);
-    return conf.get(s);
+    if (s) {
+      return conf.get(s);
+    }
+    return conf.get('');
   }
   has(setting: ConfParams): boolean {
     const s = ConfDef.get(setting);
-    return conf.has(s);
+    return s ? conf.has(s) : false;
   }
 }
 

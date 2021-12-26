@@ -1,4 +1,5 @@
 import { fetchMeta } from '../dimse/fetchMeta';
+import { FastifyReply, FastifyRequest, FastifyInstance } from 'fastify';
 import { doFind } from '../dimse/findData';
 import { QUERY_LEVEL } from '../dimse/querLevel';
 import { doWadoRs } from '../dimse/wadoRs';
@@ -23,8 +24,27 @@ const combineMerge = (target: any, source: any, options: any) => {
 };
 const options = { arrayMerge: combineMerge };
 const logger = LoggerSingleton.Instance;
-module.exports = function (server: any, opts: any, done: any) {
-  server.get('/rs/studies', async (req: any, reply: any) => {
+
+interface IParamsStudy {
+  studyInstanceUid: string;
+}
+
+interface IParamsSeries extends IParamsStudy {
+  seriesInstanceUid: string;
+}
+
+interface IParamsImage extends IParamsSeries {
+  sopInstanceUid: string;
+}
+
+interface IQueryImage {
+  studyUID: string;
+  seriesUID: string;
+  objectUID: string;
+}
+
+module.exports = function (server: FastifyInstance, opts: any, done: any) {
+  server.get('/rs/studies', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const json = deepmerge.all(await doFind(QUERY_LEVEL.STUDY, req.query), options);
       reply.send(json);
@@ -36,9 +56,11 @@ module.exports = function (server: any, opts: any, done: any) {
 
   //------------------------------------------------------------------
 
-  server.get('/rs/studies/:studyInstanceUid/metadata', async (req: any, reply: any) => {
-    const { query, params } = req;
-    query.StudyInstanceUID = params.studyInstanceUid;
+  server.get<{
+    Params: IParamsStudy;
+  }>('/rs/studies/:studyInstanceUid/metadata', async (req, reply) => {
+    const { query }: { query: any } = req;
+    query.StudyInstanceUID = req.params.studyInstanceUid;
 
     try {
       const json = deepmerge.all(await doFind(QUERY_LEVEL.SERIES, query), options);
@@ -51,9 +73,11 @@ module.exports = function (server: any, opts: any, done: any) {
 
   //------------------------------------------------------------------
 
-  server.get('/rs/studies/:studyInstanceUid/series', async (req: any, reply: any) => {
-    const { query, params } = req;
-    query.StudyInstanceUID = params.studyInstanceUid;
+  server.get<{
+    Params: IParamsStudy;
+  }>('/rs/studies/:studyInstanceUid/series', async (req, reply) => {
+    const { query }: { query: any } = req;
+    query.StudyInstanceUID = req.params.studyInstanceUid;
 
     try {
       const json = deepmerge.all(await doFind(QUERY_LEVEL.SERIES, query), options);
@@ -66,8 +90,10 @@ module.exports = function (server: any, opts: any, done: any) {
 
   //------------------------------------------------------------------
 
-  server.get('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req: any, reply: any) => {
-    const { query, params } = req;
+  server.get<{
+    Params: IParamsSeries;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req, reply) => {
+    const { query, params }: { query: any; params: any } = req;
     query.StudyInstanceUID = params.studyInstanceUid;
     query.SeriesInstanceUID = params.seriesInstanceUid;
 
@@ -82,9 +108,11 @@ module.exports = function (server: any, opts: any, done: any) {
 
   //------------------------------------------------------------------
 
-  server.get('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req: any, reply: any) => {
-    const { query, params } = req;
-    const { studyInstanceUid, seriesInstanceUid } = params;
+  server.get<{
+    Params: IParamsSeries;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid } = req.params;
+    const query: any = req.query;
     query.StudyInstanceUID = studyInstanceUid;
     query.SeriesInstanceUID = seriesInstanceUid;
 
@@ -99,7 +127,9 @@ module.exports = function (server: any, opts: any, done: any) {
 
   //------------------------------------------------------------------
 
-  server.get('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req: any, reply: any) => {
+  server.get<{
+    Params: IParamsImage;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req, reply) => {
     const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
 
     try {
@@ -114,7 +144,9 @@ module.exports = function (server: any, opts: any, done: any) {
 
   //------------------------------------------------------------------
 
-  server.get('/wadouri', async (req: any, reply: any) => {
+  server.get<{
+    Querystring: IQueryImage;
+  }>('/wadouri', async (req, reply) => {
     const { studyUID, seriesUID, objectUID } = req.query;
 
     try {
@@ -128,4 +160,4 @@ module.exports = function (server: any, opts: any, done: any) {
   });
 
   done();
-}
+};

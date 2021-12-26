@@ -21,7 +21,7 @@ socket.on('connect', () => {
   logger.info('websocket connection established');
 });
 
-socket.on('qido-request', async (data: any) => {
+socket.on('qido-request', async (data) => {
   logger.info('websocket QIDO request received, fetching metadata now...');
   const { level, query }: { level: string; query: any } = data;
 
@@ -33,7 +33,7 @@ socket.on('qido-request', async (data: any) => {
   }
 });
 
-socket.on('wadouri-request', async (data: any) => {
+socket.on('wadouri-request', async (data) => {
   logger.info('websocket wadouri request received, fetching metadata now...');
 
   if (data) {

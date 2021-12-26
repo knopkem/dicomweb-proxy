@@ -4,7 +4,8 @@
   "description": "A proxy to translate between dicomweb and dimse",
   "main": "app.js",
   "scripts": {
-    "start": "ts-node src/app.ts"
+    "start": "ts-node src/app.ts",
+    "format": "npx prettier ./src"
   },
   "repository": {
     "type": "git",
