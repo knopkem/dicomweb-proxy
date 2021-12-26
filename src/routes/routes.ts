@@ -1,9 +1,9 @@
-import { fetchMeta } from './dimse/fetchMeta';
-import { doFind } from './dimse/findData';
-import { QUERY_LEVEL } from './dimse/querLevel';
-import { doWadoRs } from './dimse/wadoRs';
-import { doWadoUri } from './dimse/wadoUri';
-import { LoggerSingleton } from './utils/logger';
+import { fetchMeta } from '../dimse/fetchMeta';
+import { doFind } from '../dimse/findData';
+import { QUERY_LEVEL } from '../dimse/querLevel';
+import { doWadoRs } from '../dimse/wadoRs';
+import { doWadoUri } from '../dimse/wadoUri';
+import { LoggerSingleton } from '../utils/logger';
 
 import deepmerge from 'deepmerge';
 
@@ -128,4 +128,4 @@ module.exports = function (server: any, opts: any, done: any) {
   });
 
   done();
-};
+}

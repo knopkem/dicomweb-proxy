@@ -1,6 +1,12 @@
 import path from 'path';
-import { promises } from 'fs';
 import fastify from 'fastify';
+import fastifyStatic from 'fastify-static';
+import fastifyCors from 'fastify-cors';
+import fastifySensible from 'fastify-sensible';
+import fastifyHelmet from 'fastify-helmet';
+import fastifyAutoload from 'fastify-autoload';
+
+import { promises } from 'fs';
 import { ConfParams, config } from './utils/config';
 import { sendEcho } from './dimse/sendEcho';
 import { startScp, shutdown } from './dimse/store';
@@ -10,18 +16,23 @@ import { socket } from './socket';
 const logger = LoggerSingleton.Instance;
 
 const server = fastify();
-server.register(require('fastify-static'), {
+server.register(fastifyStatic, {
   root: path.join(__dirname, '../public'),
 });
 
 server.setNotFoundHandler((req: any, res: any) => {
   res.sendFile('index.html');
 });
-server.register(require('fastify-cors'), {});
-server.register(require('fastify-sensible'));
-server.register(require('fastify-helmet'), { contentSecurityPolicy: false });
-server.register(require('./routes'));
-server.register(require('./routes'), { prefix: '/viewer' });
+server.register(fastifyCors, {});
+server.register(fastifySensible);
+server.register(fastifyHelmet, { contentSecurityPolicy: false });
+server.register(fastifyAutoload, {
+  dir: path.join(__dirname, 'routes'),
+});
+server.register(fastifyAutoload, {
+  dir: path.join(__dirname, 'routes'),
+  options: { prefix: '/viewer' },
+});
 
 //------------------------------------------------------------------
 
