@@ -1,5 +1,5 @@
 import { fetchMeta } from '../dimse/fetchMeta';
-import { FastifyReply, FastifyRequest, FastifyInstance } from 'fastify';
+import { FastifyInstance } from 'fastify';
 import { doFind } from '../dimse/findData';
 import { QUERY_LEVEL } from '../dimse/querLevel';
 import { doWadoRs } from '../dimse/wadoRs';
@@ -47,10 +47,13 @@ interface QueryParams {
   [key: string]: string;
 }
 
-module.exports = function (server: FastifyInstance, opts: unknown, done: any) {
-  server.get('/rs/studies', async (req: FastifyRequest, reply: FastifyReply) => {
+module.exports = function (server: FastifyInstance, opts: unknown, done: () => void) {
+  server.get<{
+    Querystring: QueryParams;
+  }>('/rs/studies', async (req, reply) => {
     try {
-      const json = deepmerge.all(await doFind(QUERY_LEVEL.STUDY, req.query), options);
+      const { query } = req;
+      const json = deepmerge.all(await doFind(QUERY_LEVEL.STUDY, query), options);
       reply.send(json);
     } catch (error) {
       logger.error(error);

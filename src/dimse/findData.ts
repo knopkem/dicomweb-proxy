@@ -13,7 +13,11 @@ const findDicomName = (name: string): string | undefined => {
   return undefined;
 };
 
-export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
+interface IQueryParams {
+  [key: string]: string;
+}
+
+export async function doFind(level: QUERY_LEVEL, query: IQueryParams): Promise<any> {
   const peers = config.get(ConfParams.PEERS) as DicomNode[];
 
   const promises: Array<Promise<any>> = [];
@@ -25,7 +29,7 @@ export async function doFind(level: QUERY_LEVEL, query: any): Promise<any> {
   return Promise.all(promises);
 }
 
-export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, query: any): Promise<unknown> {
+export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, query: IQueryParams): Promise<unknown> {
   const logger = LoggerSingleton.Instance;
 
   // add query retrieve level
@@ -62,7 +66,7 @@ export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, qu
 
   // add search param
   let invalidInput = false;
-  const minCharsQido = config.get(ConfParams.MIN_CHARS) as string;
+  const minCharsQido = config.get(ConfParams.MIN_CHARS) as number;
   Object.keys(query).forEach((propName) => {
     const tag = findDicomName(propName);
     if (tag) {
