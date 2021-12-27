@@ -43,7 +43,11 @@ interface IQueryImage {
   objectUID: string;
 }
 
-module.exports = function (server: FastifyInstance, opts: any, done: any) {
+interface QueryParams {
+  [key: string]: string;
+}
+
+module.exports = function (server: FastifyInstance, opts: unknown, done: any) {
   server.get('/rs/studies', async (req: FastifyRequest, reply: FastifyReply) => {
     try {
       const json = deepmerge.all(await doFind(QUERY_LEVEL.STUDY, req.query), options);
@@ -58,8 +62,9 @@ module.exports = function (server: FastifyInstance, opts: any, done: any) {
 
   server.get<{
     Params: IParamsStudy;
+    Querystring: QueryParams;
   }>('/rs/studies/:studyInstanceUid/metadata', async (req, reply) => {
-    const { query }: { query: any } = req;
+    const { query } = req;
     query.StudyInstanceUID = req.params.studyInstanceUid;
 
     try {
@@ -75,8 +80,9 @@ module.exports = function (server: FastifyInstance, opts: any, done: any) {
 
   server.get<{
     Params: IParamsStudy;
+    Querystring: QueryParams;
   }>('/rs/studies/:studyInstanceUid/series', async (req, reply) => {
-    const { query }: { query: any } = req;
+    const { query } = req;
     query.StudyInstanceUID = req.params.studyInstanceUid;
 
     try {
@@ -92,8 +98,9 @@ module.exports = function (server: FastifyInstance, opts: any, done: any) {
 
   server.get<{
     Params: IParamsSeries;
+    Querystring: QueryParams;
   }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances', async (req, reply) => {
-    const { query, params }: { query: any; params: any } = req;
+    const { query, params } = req;
     query.StudyInstanceUID = params.studyInstanceUid;
     query.SeriesInstanceUID = params.seriesInstanceUid;
 
@@ -110,9 +117,10 @@ module.exports = function (server: FastifyInstance, opts: any, done: any) {
 
   server.get<{
     Params: IParamsSeries;
+    Querystring: QueryParams;
   }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/metadata', async (req, reply) => {
     const { studyInstanceUid, seriesInstanceUid } = req.params;
-    const query: any = req.query;
+    const { query } = req;
     query.StudyInstanceUID = studyInstanceUid;
     query.SeriesInstanceUID = seriesInstanceUid;
 
@@ -161,3 +169,5 @@ module.exports = function (server: FastifyInstance, opts: any, done: any) {
 
   done();
 };
+
+//------------------------------------------------------------------
