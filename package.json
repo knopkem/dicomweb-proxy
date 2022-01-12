@@ -43,7 +43,7 @@
     "fastify-helmet": "^5.3.2",
     "fastify-sensible": "^3.1.1",
     "fastify-static": "^4.4.2",
-    "shelljs": "^0.8.4",
+    "shelljs": "^0.8.5",
     "simple-node-logger": "^21.8.12",
     "socket.io-client": "^4.3.0",
     "throat": "^6.0.1",
