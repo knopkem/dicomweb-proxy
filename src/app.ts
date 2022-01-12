@@ -42,7 +42,6 @@ const getDirectories = async (source: string) =>
 //------------------------------------------------------------------
 
 const clearCache = async () => {
-  logger.info('checking for stale cache directories...');
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   const retention = config.get(ConfParams.CACHE_RETENTION) as number;
 
