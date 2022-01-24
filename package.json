@@ -28,7 +28,7 @@
   "homepage": "https://github.com/knopkem/dicomweb-proxy#readme",
   "dependencies": {
     "@iwharris/dicom-data-dictionary": "^1.26.0",
-    "@types/config": "^0.0.40",
+    "@types/config": "^0.0.41",
     "@types/node": "^16.11.8",
     "@types/shelljs": "^0.8.9",
     "@types/socket.io-client": "^3.0.0",
