@@ -55,6 +55,8 @@ function parseFile(filename: string): Promise<ElementType> {
         const ippString = dataset.string('x00200032');
         const ipp = ippString ? ippString.split('\\').map((e: string) => parseFloat(e)) : null;
         const instanceNumber = dataset.string('x00200013');
+        const sliceThickness = dataset.string('x00180050');
+        const sliceLocation = dataset.string('x00201041');
 
         // append to all results
         const result: ElementType = {
@@ -84,6 +86,8 @@ function parseFile(filename: string): Promise<ElementType> {
           ...(iop && { '00200037': { Value: iop, vr: 'DS' } }),
           ...(ipp && { '00200032': { Value: ipp, vr: 'DS' } }),
           '00200013': { Value: [instanceNumber], vr: 'IS' },
+          '00180050': { Value: [sliceThickness], vr: 'DS' },
+          '00201041': { Value: [sliceLocation], vr: 'DS' },
         };
         resolve(result);
       });
