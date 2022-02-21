@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 
 interface ValueType {
-  Value: string[] | number[];
+  Value: string[] | number[] | any[];
   vr: string;
 }
 type ElementType = Record<string, ValueType>;
@@ -24,8 +24,13 @@ function parseFile(filename: string): Promise<ElementType> {
         const dataset = dicomParser.parseDicom(data);
 
         // parse additional needed attributes
+        const patientName = dataset.string('x00100010');
+        const patentID = dataset.string('x00100020');
         const studyInstanceUID = dataset.string('x0020000d');
+        const studyDate = dataset.string('x00080020');
+        const studyTime = dataset.string('x00080030');
         const seriesInstanceUID = dataset.string('x0020000e');
+        const seriesNumber = dataset.string('x00200011');
         const sopInstanceUID = dataset.string('x00080018');
         const sopClassUID = dataset.string('x00080016');
         const bitsAllocated = dataset.uint16('x00280100');
@@ -49,11 +54,17 @@ function parseFile(filename: string): Promise<ElementType> {
         const iop = iopString ? iopString.split('\\').map((e: string) => parseFloat(e)) : null;
         const ippString = dataset.string('x00200032');
         const ipp = ippString ? ippString.split('\\').map((e: string) => parseFloat(e)) : null;
+        const instanceNumber = dataset.string('x00200013');
 
         // append to all results
         const result: ElementType = {
+          '00100010': { Value: [{ Alphabetic: patientName }], vr: 'PN' },
+          '00100020': { Value: [patentID], vr: 'LO' },
           '0020000D': { Value: [studyInstanceUID], vr: 'UI' },
+          '00080020': { Value: [studyDate], vr: 'DA' },
+          '00080030': { Value: [studyTime], vr: 'TM' },
           '0020000E': { Value: [seriesInstanceUID], vr: 'UI' },
+          '00200011': { Value: [seriesNumber], vr: 'IS' },
           '00080018': { Value: [sopInstanceUID], vr: 'UI' },
           '00080016': { Value: [sopClassUID], vr: 'UI' },
           '00080060': { Value: [modality], vr: 'CS' },
@@ -72,6 +83,7 @@ function parseFile(filename: string): Promise<ElementType> {
           '00281053': { Value: [rescaleSlope], vr: 'DS' },
           ...(iop && { '00200037': { Value: iop, vr: 'DS' } }),
           ...(ipp && { '00200032': { Value: ipp, vr: 'DS' } }),
+          '00200013': { Value: [instanceNumber], vr: 'IS' },
         };
         resolve(result);
       });
@@ -79,9 +91,9 @@ function parseFile(filename: string): Promise<ElementType> {
   });
 }
 
-export function parseMeta(json: any, studyInstanceUID: string, eriesInstanceUID: string): Promise<unknown> {
+export function parseMeta(json: any, studyInstanceUID: string, seriesInstanceUID: string): Promise<unknown> {
   const logger = LoggerSingleton.Instance;
-  logger.info(`parsing series ${eriesInstanceUID}`);
+  logger.info(`parsing series ${seriesInstanceUID}`);
 
   const parsing = new Array<Promise<ElementType>>();
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
