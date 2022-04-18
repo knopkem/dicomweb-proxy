@@ -17,6 +17,7 @@ export const enum ConfParams {
   WEBSOCKET_URL,
   WEBSOCKET_TOKEN,
   CACHE_RETENTION,
+  FULL_META,
 }
 
 const ConfDef = new Map([
@@ -35,6 +36,7 @@ const ConfDef = new Map([
   [ConfParams.WEBSOCKET_URL, 'websocketUrl'],
   [ConfParams.WEBSOCKET_TOKEN, 'websocketToken'],
   [ConfParams.CACHE_RETENTION, 'cacheRetentionMinutes'],
+  [ConfParams.FULL_META, 'fullMeta'],
 ]);
 
 interface IConfig {

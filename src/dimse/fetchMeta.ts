@@ -12,6 +12,7 @@ import path from 'path';
 export async function fetchMeta(query: any, studyInstanceUID: string, seriesInstanceUID: string): Promise<unknown> {
   const logger = LoggerSingleton.Instance;
   const peers = config.get(ConfParams.PEERS) as DicomNode[];
+  const fullMeta = config.get(ConfParams.FULL_META) as boolean;
 
   for (let i = 0; i < peers.length; i++) {
     const peer = peers[i];
@@ -22,6 +23,10 @@ export async function fetchMeta(query: any, studyInstanceUID: string, seriesInst
     if (json.length === 0) {
       logger.info(`no data found on peer: ${peer.aet}`);
       continue;
+    }
+
+    if (!fullMeta) {
+      return json;
     }
 
     // check if fetch is needed

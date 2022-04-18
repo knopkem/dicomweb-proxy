@@ -64,6 +64,9 @@ config.qidoAppendWildcard = true;
 // enable verbose logging to std::out (contains DIMSE output)
 config.verboseLogging = false;
 
+// only disable when using wadouri instead of wadors
+config.fullMeta = true;
+
 // disabled when empty, otherwise use connection url e.g. ws://localhost:6001
 config.websocketUrl = '';
 
