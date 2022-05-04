@@ -34,6 +34,9 @@ Supported Transfer Syntaxes:
 // transfer syntax (e.g. compression of dicom files) used for transmission via wado and proposed to pacs
 config.transferSyntax = '1.2.840.10008.1.2.4.80';
 
+// only used for JPEG process 1,2,4
+config.lossyQuality = 60;
+
 // log directory
 config.logDir = './logs';
 

@@ -8,6 +8,7 @@ export async function compressFile(inputFile: string, outputDirectory: string, t
     sourcePath: inputFile,
     storagePath: outputDirectory,
     writeTransfer: transferSyntax || config.get(ConfParams.XTRANSFER),
+    lossyQuality: config.get(ConfParams.LOSSY_QUALITY),
     verbose: config.get(ConfParams.VERBOSE),
   };
 
