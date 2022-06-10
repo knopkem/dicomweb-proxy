@@ -1,0 +1,78 @@
+{
+  // our SCP (only used if useCget is false
+  "source": {
+    "aet": "DICOMWEB_PROXY",
+    "ip": "127.0.0.1",
+    "port": 8888
+  },
+
+  // define DICOM peers here
+  "peers": [
+    {
+      "aet": "CONQUESTSRV1",
+      "ip": "127.0.0.1",
+      "port": 5678
+    }
+  ],
+
+  /*
+    Supported Transfer Syntaxes:
+    1.2.840.10008.1.2       Implicit VR Endian: Default Transfer Syntax for DICOM    
+    1.2.840.10008.1.2.1     Explicit VR Little Endian    
+    1.2.840.10008.1.2.2     Explicit VR Big Endian   
+    1.2.840.10008.1.2.4.50  JPEG Baseline (Process 1) - Lossy JPEG 8-bit Image Compression
+    1.2.840.10008.1.2.4.51  JPEG Baseline (Processes 2 & 4) - Lossy JPEG 12-bit Image Compression
+    1.2.840.10008.1.2.4.70  JPEG Lossless, Nonhierarchical, First- Order Prediction
+    1.2.840.10008.1.2.4.80  JPEG-LS Lossless Image Compression   <-- recommended
+    1.2.840.10008.1.2.4.81  JPEG-LS Lossy (Near- Lossless) Image Compression
+    1.2.840.10008.1.2.4.90  JPEG 2000 Image Compression (Lossless Only)	 
+    1.2.840.10008.1.2.4.91  JPEG 2000 Image Compression
+    1.2.840.10008.1.2.5     RLE Lossless
+  */
+
+  // transfer syntax (e.g. compression of dicom files) used for transmission via wado and proposed to pacs
+  "transferSyntax": "1.2.840.10008.1.2.4.80",
+
+  // only used for JPEG process 1,2,4
+  "lossyQuality": 60,
+
+  // log directory
+  "logDir": "./logs",
+
+  // cache directory
+  "storagePath": "./data",
+
+  // keep cache alive for how long after storage or -1 to disable
+  "cacheRetentionMinutes": 60,
+
+  // webserver port
+  "webserverPort": 5000,
+
+  // target PACS supports C-Get (if flase use C-Move instead)
+  "useCget": true,
+
+  // define which level to use for C-Move/C-Get fetches: STUDY, SERIES, IMAGE
+  "useFetchLevel": "SERIES",
+
+  // number of associations to PACS run in parallel
+  "maxAssociations": 4,
+
+  // do not issue c-find if search contains less characters
+  "qidoMinChars": 0,
+
+  // auto append * for patient name query
+  "qidoAppendWildcard": true,
+
+  // enable verbose logging to std::out (contains DIMSE output)
+  "verboseLogging": false,
+
+  // only disable when using wadouri instead of wadors
+  "fullMeta": true,
+
+  // disabled when empty, otherwise use connection url e.g. ws://localhost:6001
+  "websocketUrl": "",
+
+  // this is the secret your dicomweb-websocket-bride needs to configure too, make sure to keep it secret, and of course change it ,-) hint: use https://hashgenerator.de/
+  "websocketToken":
+    "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+}
