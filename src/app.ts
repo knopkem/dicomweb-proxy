@@ -37,8 +37,14 @@ server.register(fastifyAutoload, {
 //------------------------------------------------------------------
 
 const getDirectories = async (source: string) => {
-  const dir = await promises.readdir(source, { withFileTypes: true })
-  return dir.filter((dirent) => dirent.isDirectory()).map((dirent) => dirent.name)
+  try {
+    const dir = await promises.readdir(source, { withFileTypes: true })
+    return dir.filter((dirent) => dirent.isDirectory()).map((dirent) => dirent.name)
+  }
+  catch (e) {
+    logger.warn("Storage Folder doesn't exist: ", source);
+    return [];
+  }
 }
 
 //------------------------------------------------------------------
