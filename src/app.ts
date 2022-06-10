@@ -1,10 +1,10 @@
 import path from 'path';
 import fastify, { FastifyReply, FastifyRequest, FastifyInstance } from 'fastify';
-import fastifyStatic from 'fastify-static';
-import fastifyCors from 'fastify-cors';
-import fastifySensible from 'fastify-sensible';
-import fastifyHelmet from 'fastify-helmet';
-import fastifyAutoload from 'fastify-autoload';
+import fastifyStatic from '@fastify/static';
+import fastifyCors from '@fastify/cors';
+import fastifySensible from '@fastify/sensible';
+import fastifyHelmet from '@fastify/helmet';
+import fastifyAutoload from '@fastify/autoload';
 
 import { promises } from 'fs';
 import { ConfParams, config } from './utils/config';
@@ -36,8 +36,16 @@ server.register(fastifyAutoload, {
 
 //------------------------------------------------------------------
 
-const getDirectories = async (source: string) =>
-  (await promises.readdir(source, { withFileTypes: true })).filter((dirent) => dirent.isDirectory()).map((dirent) => dirent.name);
+const getDirectories = async (source: string) => {
+  try {
+    const dir = await promises.readdir(source, { withFileTypes: true })
+    return dir.filter((dirent) => dirent.isDirectory()).map((dirent) => dirent.name)
+  }
+  catch (e) {
+    logger.warn("Storage Folder doesn't exist: ", source);
+    return [];
+  }
+}
 
 //------------------------------------------------------------------
 
