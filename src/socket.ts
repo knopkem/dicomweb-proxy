@@ -35,11 +35,10 @@ socket.on('qido-request', async (data) => {
 
 socket.on('wadouri-request', async (data) => {
   logger.info('websocket wadouri request received, fetching metadata now...');
-  const {
-    studyUID, seriesUID, objectUID, studyInstanceUid, seriesInstanceUid, sopInstanceUid
-  } = data.query;
-
   if (data) {
+    const {
+      studyUID, seriesUID, objectUID, studyInstanceUid, seriesInstanceUid, sopInstanceUid
+    } = data.query;
     try {
       const rsp = await doWadoUri({
         studyInstanceUid: studyInstanceUid ?? studyUID,
