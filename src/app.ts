@@ -103,7 +103,7 @@ process.on('SIGINT', async () => {
 
 const port = config.get(ConfParams.HTTP_PORT) as number;
 logger.info('starting...');
-server.listen(port, '0.0.0.0', async (err, address) => {
+server.listen({ port, host: '0.0.0.0' }, async (err, address) => {
   if (err) {
     await logger.error(err, address);
     process.exit(1);
