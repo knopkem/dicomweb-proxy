@@ -24,7 +24,7 @@ export async function doWadoUri({ studyInstanceUid, seriesInstanceUid, sopInstan
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   const studyPath = path.join(storagePath, studyInstanceUid);
   const pathname = path.join(studyPath, sopInstanceUid);
-
+  
   // fetch if needed
   const exists = await fileExists(pathname);
   if (!exists) {
@@ -36,11 +36,10 @@ export async function doWadoUri({ studyInstanceUid, seriesInstanceUid, sopInstan
     }
   }
 
-  try {
-    await fileExists(pathname);
-  } catch (error) {
-    logger.error(error);
+  const postExists = await fileExists(pathname);
+  if (!postExists) {
     const msg = `file not found ${pathname}`;
+    logger.error(msg);
     throw msg;
   }
 
