@@ -3,6 +3,7 @@
 .node-persist
 config/development.js
 config/production.js
+/build
 keycloak.json
 data
 
