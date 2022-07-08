@@ -7,21 +7,8 @@ import { doWadoUri } from '../dimse/wadoUri';
 import { LoggerSingleton } from '../utils/logger';
 
 import deepmerge from 'deepmerge';
+import combineMerge from '../utils/combineMerge';
 
-const combineMerge = (target: any, source: any, options: any) => {
-  const destination = target.slice();
-
-  source.forEach((item: any, index: number) => {
-    if (typeof destination[index] === 'undefined') {
-      destination[index] = options.cloneUnlessOtherwiseSpecified(item, options);
-    } else if (options.isMergeableObject(item)) {
-      destination[index] = deepmerge(target[index], item, options);
-    } else if (target.indexOf(item) === -1) {
-      destination.push(item);
-    }
-  });
-  return destination;
-};
 const options = { arrayMerge: combineMerge };
 const logger = LoggerSingleton.Instance;
 
@@ -66,6 +53,25 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
   server.get<{
     Params: IParamsStudy;
     Querystring: QueryParams;
+  }>('/rs/studies/:studyInstanceUid', async (req, reply) => {
+    const { params } = req;
+    const { studyInstanceUid } = params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    } catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsStudy;
+    Querystring: QueryParams;
   }>('/rs/studies/:studyInstanceUid/metadata', async (req, reply) => {
     const { query } = req;
     query.StudyInstanceUID = req.params.studyInstanceUid;
@@ -96,6 +102,25 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       reply.send(500);
     }
   });
+
+  //------------------------------------------------------------------
+
+    server.get<{
+      Params: IParamsSeries;
+      Querystring: QueryParams;
+    }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid', async (req, reply) => {
+      const { params } = req;
+      const { studyInstanceUid, seriesInstanceUid } = params;
+  
+      try {
+        const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid });
+        reply.header('Content-Type', rsp.contentType);
+        reply.send(rsp.buffer);
+      } catch (error) {
+        logger.error(error);
+        reply.send(500);
+      }
+    });
 
   //------------------------------------------------------------------
 
@@ -142,6 +167,25 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     Params: IParamsImage;
   }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req, reply) => {
     const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    } catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsImage;
+    Querystring: QueryParams;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid', async (req, reply) => {
+    const { params } = req;
+    const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = params;
 
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid });

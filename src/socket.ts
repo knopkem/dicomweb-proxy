@@ -4,6 +4,8 @@ import { doFind } from './dimse/findData';
 import { stringToQueryLevel } from './dimse/querLevel';
 import { doWadoUri } from './dimse/wadoUri';
 import { LoggerSingleton } from './utils/logger';
+import { doWadoRs } from './dimse/wadoRs';
+import socketIOStream from 'socket.io-stream';
 
 const websocketUrl = config.get(ConfParams.WEBSOCKET_URL) as string;
 const logger = LoggerSingleton.Instance;
@@ -23,13 +25,46 @@ socket.on('connect', () => {
 
 socket.on('qido-request', async (data) => {
   logger.info('websocket QIDO request received, fetching metadata now...');
-  const { level, query }: { level: string; query: any } = data;
+  const { level, query }: { level: string; query: Record<string, string> } = data;
 
   if (data) {
     const lvl = stringToQueryLevel(level);
     const json = await doFind(lvl, query);
     logger.info('sending websocket response');
     socket.emit(data.uuid, json);
+  }
+});
+
+socket.on('wado-request', async (data) => {
+  logger.info('websocket WADO request received, fetching metadata now...');
+  const { query }: { query: Record<string, string> } = data;
+  const {
+    studyInstanceUid, seriesInstanceUid, sopInstanceUid
+  } = query;
+
+  if (data) {
+    const { contentType, buffer } = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid });
+    logger.info('sending websocket response stream');
+    const stream = socketIOStream.createStream();
+    socketIOStream(socket).emit(data.uuid, stream, { contentType: contentType })
+    let offset = 0;
+    const chunkSize = 512*1024 // 512kb
+    const writeBuffer = () => {
+      let ok = true;
+      do {
+        const b = Buffer.alloc(chunkSize)
+        buffer.copy(b, 0, offset, offset + chunkSize)
+        ok = stream.write(b)
+        offset += chunkSize
+      } while (offset < buffer.length && ok)
+      if (offset < buffer.length) {
+        stream.once("drain", writeBuffer)
+      }
+      else {
+        stream.end()
+      }
+    }
+    writeBuffer()
   }
 });
 
