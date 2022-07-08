@@ -102,10 +102,15 @@ process.on('SIGINT', async () => {
 //------------------------------------------------------------------
 
 const port = config.get(ConfParams.HTTP_PORT) as number;
-logger.info('starting...');
-server.listen({ port, host: '0.0.0.0' }, async (err, address) => {
-  if (err) {
-    await logger.error(err, address);
+(async () => {
+  logger.info('starting...', port);
+  try {
+    await server.listen({ port, host: '0.0.0.0' })
+    await server.ready();
+  }
+  catch (e) {
+    console.log(e)
+    await logger.error(e);
     process.exit(1);
   }
   logger.info(`web-server listening on port: ${port}`);
@@ -125,6 +130,6 @@ server.listen({ port, host: '0.0.0.0' }, async (err, address) => {
   // running clear cache and setup for 1h checks
   clearCache();
   setInterval(clearCache, 60000);
-});
+})();
 
 //------------------------------------------------------------------
