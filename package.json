@@ -30,7 +30,7 @@
     "@fastify/compress": "^6.0.0",
     "@fastify/cors": "^8.0.0",
     "@fastify/helmet": "^9.1.0",
-    "@fastify/sensible": "^5.0.0",
+    "@fastify/sensible": "^5.1.0",
     "@fastify/static": "^6.4.0",
     "@iwharris/dicom-data-dictionary": "^1.26.0",
     "config": "^3.3.7",
