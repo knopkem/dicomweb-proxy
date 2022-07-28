@@ -5,11 +5,11 @@ import fastifyCors from '@fastify/cors';
 import fastifySensible from '@fastify/sensible';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyAutoload from '@fastify/autoload';
-
-import { promises } from 'fs';
-import { ConfParams, config } from './utils/config';
 import { sendEcho } from './dimse/sendEcho';
-import { startScp, shutdown } from './dimse/store';
+import { startScp } from './dimse/store';
+import { clearCache } from './utils/fileHelper';
+import { ConfParams, config } from './utils/config';
+import { shutdown } from './dimse/store';
 import { LoggerSingleton } from './utils/logger';
 import { socket } from './socket';
 
@@ -33,45 +33,6 @@ server.register(fastifyAutoload, {
   dir: path.join(__dirname, 'routes'),
   options: { prefix: '/viewer' },
 });
-
-//------------------------------------------------------------------
-
-const getDirectories = async (source: string) => {
-  try {
-    const dir = await promises.readdir(source, { withFileTypes: true })
-    return dir.filter((dirent) => dirent.isDirectory()).map((dirent) => dirent.name)
-  }
-  catch (e) {
-    logger.warn("Storage Folder doesn't exist: ", source);
-    return [];
-  }
-}
-
-//------------------------------------------------------------------
-
-const clearCache = async () => {
-  const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
-  const retention = config.get(ConfParams.CACHE_RETENTION) as number;
-
-  if (retention < 0) {
-    logger.warn('cache cleanup disabled');
-    return;
-  }
-
-  const dirs = await getDirectories(storagePath);
-  const dateNow = new Date();
-
-  for (const dir of dirs) {
-    const filepath = path.join(storagePath, dir);
-    const stats = await promises.stat(filepath);
-    const mtime = stats.mtime;
-    const minutes = (dateNow.getTime() - mtime.getTime()) / 60000;
-    if (minutes > retention) {
-      logger.info(`removing: ${filepath}`);
-      await promises.rm(filepath, { recursive: true, force: true });
-    }
-  }
-};
 
 //------------------------------------------------------------------
 
