@@ -56,10 +56,12 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     filename = sopInstanceUid
   }
 
-  const json = deepmerge.all(await doFind(QUERY_LEVEL.IMAGE, { StudyInstanceUID: studyInstanceUid }), { arrayMerge: combineMerge}) as QidoResponse[];
+  const json = deepmerge.all(await doFind(QUERY_LEVEL.IMAGE, { StudyInstanceUID: studyInstanceUid, SeriesInstanceUID: seriesInstanceUid ?? '' }), { arrayMerge: combineMerge}) as QidoResponse[];
+  const foundInstances: string[] = [];
   const foundPromises = await Promise.all(json.map(async (instance) => {
     if (instance["00080018"]) {
       const id = instance["00080018"].Value[0]
+      foundInstances.push(id);
       try {
         const stat = await fs.stat(path.join(studyPath, id))
         if (stat) {
@@ -73,7 +75,7 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     }
     return true
   }))
-
+  
   const useCache = foundPromises.reduce((prev, curr) => prev && curr, true)
 
   if (!useCache) {
@@ -81,7 +83,7 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     await waitOrFetchData(studyInstanceUid, seriesInstanceUid ?? '', sopInstanceUid ?? '', queryLevel);
   }
 
-  let buffers
+  let buffers: (Buffer | undefined)[] = []
 
   try {
     const stat = await fs.stat(pathname)
@@ -89,31 +91,42 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     if (isDir) {
       const files = await fs.readdir(pathname)
       buffers = await Promise.all(files.map(async (file) => {
-        const filePath = path.join(pathname, file)
-        if (!useCache) {
-          try {
-            await compressFile(filePath, studyPath);
+        if (foundInstances.includes(file)) {
+          const filePath = path.join(pathname, file)
+          if (!useCache) {
+            try {
+              await compressFile(filePath, studyPath);
+            }
+            catch (e) {
+              logger.error(`failed to compress ${pathname}`, e);
+            }
           }
-          catch (e) {
-            logger.error(`failed to compress ${pathname}`);
-            throw e;
-          }
+          return addFileToBuffer(pathname, file)
         }
-        return addFileToBuffer(pathname, file)
       }))
     }
     else {
-      if (!useCache) {
-        await compressFile(pathname, studyPath);
+      if (foundInstances.includes(filename)) {
+        if (!useCache) {
+          try {
+            await compressFile(pathname, studyPath);
+          }
+          catch (e) {
+            logger.error(`failed to compress ${pathname}`, e);
+          }
+        }
+        
+        buffers = [await addFileToBuffer(pathname, filename)]
       }
-      
-      buffers = [await addFileToBuffer(pathname, filename)]
     }
     const boundary = studyInstanceUid
     const buffArray: Buffer[] = []
+    buffers = buffers.filter((b: Buffer | undefined) => !!b)
     buffers.forEach(async (buff) => {
-      buffArray.push(Buffer.from(`${term}--${boundary}${term}`));
-      buffArray.push(buff);
+      if (buff) {
+        buffArray.push(Buffer.from(`${term}--${boundary}${term}`));
+        buffArray.push(buff);
+      }
     })
     buffArray.push(Buffer.from(`${term}--${boundary}${term}`))
 
