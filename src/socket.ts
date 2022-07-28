@@ -5,7 +5,7 @@ import { stringToQueryLevel } from './dimse/querLevel';
 import { doWadoUri } from './dimse/wadoUri';
 import { LoggerSingleton } from './utils/logger';
 import { doWadoRs } from './dimse/wadoRs';
-import socketIOStream from 'socket.io-stream';
+import socketIOStream from '@wearemothership/socket.io-stream';
 
 const websocketUrl = config.get(ConfParams.WEBSOCKET_URL) as string;
 const logger = LoggerSingleton.Instance;
