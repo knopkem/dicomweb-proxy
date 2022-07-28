@@ -115,7 +115,7 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
       buffArray.push(Buffer.from(`${term}--${boundary}${term}`));
       buffArray.push(buff);
     })
-    buffArray.push(Buffer.from(`${term}--${boundary}--${term}`))
+    buffArray.push(Buffer.from(`${term}--${boundary}${term}`))
 
     const contentType = `multipart/related;type='application/octet-stream';boundary='${boundary}'`;
     return Promise.resolve({
