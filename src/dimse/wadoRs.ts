@@ -30,15 +30,13 @@ const term = '\r\n';
 async function addFileToBuffer(pathname: string, filename: string): Promise<Buffer> {
   const filepath = path.join(pathname, filename)
   const data = await fs.readFile(filepath);
-  const contentId = filename
 
   const buffArray: Buffer[] = [];
-  buffArray.push(Buffer.from(`Content-Location:localhost${term}`));
-  buffArray.push(Buffer.from(`Content-ID:${contentId}${term}`));
   buffArray.push(Buffer.from(`Content-Type:${config.get(ConfParams.MIMETYPE)};transfer-syntax:${config.get(ConfParams.XTRANSFER)}${term}`));
   buffArray.push(Buffer.from(term));
   buffArray.push(data);
-  return Buffer.concat(buffArray)
+  buffArray.push(Buffer.from(term));
+  return Buffer.concat(buffArray);
 }
 
 export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid }: WadoRsArgs): Promise<WadoRsResponse> {
@@ -124,13 +122,13 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     buffers = buffers.filter((b: Buffer | undefined) => !!b)
     buffers.forEach(async (buff) => {
       if (buff) {
-        buffArray.push(Buffer.from(`${term}--${boundary}${term}`));
+        buffArray.push(Buffer.from(`--${boundary}${term}`));
         buffArray.push(buff);
       }
-    })
-    buffArray.push(Buffer.from(`${term}--${boundary}${term}`))
+    });
+    buffArray.push(Buffer.from(`--${boundary}--${term}`));
 
-    const contentType = `multipart/related;type='application/octet-stream';boundary='${boundary}'`;
+    const contentType = `multipart/related;type='application/octet-stream';boundary=${boundary}`;
     return Promise.resolve({
       contentType,
       buffer: Buffer.concat(buffArray),
