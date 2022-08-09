@@ -71,6 +71,60 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
 
   server.get<{
     Params: IParamsStudy;
+  }>('/rs/studies/:studyInstanceUid/pixeldata', async (req, reply) => {
+    const { studyInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'pixelData' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsStudy;
+  }>('/rs/studies/:studyInstanceUid/rendered', async (req, reply) => {
+    const { studyInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'rendered' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsStudy;
+  }>('/rs/studies/:studyInstanceUid/thumbnail', async (req, reply) => {
+    const { studyInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'thumbnail' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsStudy;
     Querystring: QueryParams;
   }>('/rs/studies/:studyInstanceUid/metadata', async (req, reply) => {
     const { query } = req;
@@ -121,6 +175,60 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
         reply.send(500);
       }
     });
+  
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsSeries;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/pixeldata', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'pixelData' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsSeries;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/rendered', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'rendered' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsSeries;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/thumbnail', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'thumbnail' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
 
   //------------------------------------------------------------------
 
@@ -165,11 +273,65 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
 
   server.get<{
     Params: IParamsImage;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/pixeldata', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixelData' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsImage;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/rendered', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'rendered' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsImage;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/thumbnail', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
+
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'thumbnail' });
+      reply.header('Content-Type', rsp.contentType);
+      reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
+
+  server.get<{
+    Params: IParamsImage;
   }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/instances/:sopInstanceUid/frames/:frame', async (req, reply) => {
     const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
 
     try {
-      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid });
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixelData' });
       reply.header('Content-Type', rsp.contentType);
       reply.send(rsp.buffer);
     } catch (error) {
