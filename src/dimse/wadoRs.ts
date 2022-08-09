@@ -15,7 +15,7 @@ import util from 'util';
 
 const execFile = util.promisify(exFile);
 
-type DataFormat = 'pixelData' | 'bulkData' | 'rendered' | 'thumbnail'
+export type DataFormat = 'pixelData' | 'bulkData' | 'rendered' | 'thumbnail'
 
 type WadoRsArgs = {
   studyInstanceUid: string;
