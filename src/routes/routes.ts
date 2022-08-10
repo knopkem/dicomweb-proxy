@@ -75,7 +75,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     const { studyInstanceUid } = req.params;
 
     try {
-      const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'pixelData' });
+      const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
       reply.send(rsp.buffer);
     }
@@ -184,7 +184,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     const { studyInstanceUid, seriesInstanceUid } = req.params;
 
     try {
-      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'pixelData' });
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
       reply.send(rsp.buffer);
     }
@@ -277,7 +277,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
 
     try {
-      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixelData' });
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
       reply.send(rsp.buffer);
     }
@@ -331,7 +331,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
 
     try {
-      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixelData' });
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
       reply.send(rsp.buffer);
     } catch (error) {
