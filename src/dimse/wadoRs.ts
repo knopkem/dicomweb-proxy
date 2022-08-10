@@ -129,7 +129,7 @@ async function addFileToBuffer(pathname: string, filename: string, dataFormat?: 
     returnData = data;
   }
   }
-  buffArray.push(Buffer.from(`Content-ID:${filename};${term}`));
+  buffArray.push(Buffer.from(`Content-Location:${filepath};${term}`));
   buffArray.push(Buffer.from(term));
   buffArray.push(returnData);
   buffArray.push(Buffer.from(term));
