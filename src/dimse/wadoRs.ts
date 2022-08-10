@@ -15,7 +15,7 @@ import util from 'util';
 
 const execFile = util.promisify(exFile);
 
-export type DataFormat = 'pixeldata' | 'bulkData' | 'rendered' | 'thumbnail'
+export type DataFormat = 'pixeldata' | 'bulkdata' | 'rendered' | 'thumbnail'
 
 type WadoRsArgs = {
   studyInstanceUid: string;
@@ -80,7 +80,7 @@ async function convertToJpeg(filepath: string, asThumbnail = false) {
 
 /**
  * Compresses (if needed) the DCM file and then adds the required data to the return buffer:
- * bulkData and PixelData return the DCM pixeldata buffer
+ * bulkdata and PixelData return the DCM pixeldata buffer
  * rendered returns a JPEG file buffer
  * otherwise returns a DICOM file buffer
  * 
@@ -108,7 +108,7 @@ async function addFileToBuffer(pathname: string, filename: string, dataFormat?: 
   const data = await fs.readFile(filepath);
   let returnData;
   switch (dataFormat) {
-  case 'bulkData':
+  case 'bulkdata':
   case 'pixeldata': {
     // Get the pixeldata from the DICOM and add it to the buffer.
     const dataset = dicomParser.parseDicom(data);
@@ -236,7 +236,7 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     if (dataFormat === 'rendered') {
       type = 'image/jpeg';
     }
-    if (dataFormat?.match(/bulkData|pixeldata/ig)) {
+    if (dataFormat?.match(/bulkdata|pixeldata/ig)) {
       type = 'application/octet-stream';
     }
 
