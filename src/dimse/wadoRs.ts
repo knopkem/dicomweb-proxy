@@ -86,7 +86,14 @@ async function convertToJpeg(filepath: string, asThumbnail = false) {
  * 
  * Attaches needed headers
  */
-async function addFileToBuffer(pathname: string, filename: string, dataFormat?: DataFormat): Promise<Buffer> {
+interface AddFileToBuffer {
+  pathname: string,
+  filename: string,
+  contentLocation: string,
+  dataFormat?: DataFormat,
+}
+
+async function addFileToBuffer({ pathname, filename, dataFormat, contentLocation }: AddFileToBuffer): Promise<Buffer> {
   const logger = LoggerSingleton.Instance;
   const filepath = path.join(pathname, filename);
   const buffArray: Buffer[] = [];
@@ -129,7 +136,7 @@ async function addFileToBuffer(pathname: string, filename: string, dataFormat?: 
     returnData = data;
   }
   }
-  buffArray.push(Buffer.from(`Content-Location:${filepath};${term}`));
+  buffArray.push(Buffer.from(`Content-Location:${contentLocation};${term}`));
   buffArray.push(Buffer.from(term));
   buffArray.push(returnData);
   buffArray.push(Buffer.from(term));
@@ -144,12 +151,15 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
   const studyPath = path.join(storagePath, studyInstanceUid);
   let pathname = studyPath;
   let filename = '';
+  let contentLocation = `/studies/${studyInstanceUid}/`
   if (seriesInstanceUid) {
     queryLevel = QUERY_LEVEL.SERIES
+    contentLocation += `series/${seriesInstanceUid}/`
   }
   if (sopInstanceUid) {
     filename = sopInstanceUid;
     pathname = path.join(pathname, sopInstanceUid);
+    contentLocation += `instance/${sopInstanceUid}/`
   }
 
   // Is the path that we have a directory or a file?
@@ -210,13 +220,13 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
       const files = await fs.readdir(pathname)
       buffers = await Promise.all(files.map(async (file) => {
         if (foundInstances.includes(file)) {
-          return addFileToBuffer(pathname, file, dataFormat);
+          return addFileToBuffer({ pathname, filename: file, dataFormat, contentLocation });
         }
       }))
     }
     else {
       // Attach the one file that we need to the return buffer
-      buffers = [await addFileToBuffer(studyPath, filename, dataFormat)];
+      buffers = [await addFileToBuffer({ pathname: studyPath, filename, dataFormat, contentLocation })];
     }
 
     // Set up the boundaries and join together all of the file buffers to form
