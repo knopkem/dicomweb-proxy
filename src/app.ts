@@ -5,7 +5,9 @@ import fastifyCors from '@fastify/cors';
 import fastifySensible from '@fastify/sensible';
 import fastifyHelmet from '@fastify/helmet';
 import fastifyAutoload from '@fastify/autoload';
-
+import { sendEcho } from './dimse/sendEcho';
+import { startScp } from './dimse/store';
+import { clearCache } from './utils/fileHelper';
 import { ConfParams, config } from './utils/config';
 import { shutdown } from './dimse/store';
 import { LoggerSingleton } from './utils/logger';
@@ -61,13 +63,34 @@ process.on('SIGINT', async () => {
 //------------------------------------------------------------------
 
 const port = config.get(ConfParams.HTTP_PORT) as number;
-logger.info('starting...');
-server.listen({ port, host: '0.0.0.0' }, async (err, address) => {
-  if (err) {
-    await logger.error(err, address);
+(async () => {
+  logger.info('starting...', port);
+  try {
+    await server.listen({ port, host: '0.0.0.0' })
+    await server.ready();
+  }
+  catch (e) {
+    console.log(e)
+    await logger.error(e);
     process.exit(1);
   }
   logger.info(`web-server listening on port: ${port}`);
-});
+
+  // if not using c-get, start our scp
+  if (!config.get(ConfParams.C_GET)) {
+    startScp();
+  }
+  sendEcho();
+
+  const websocketUrl = config.get(ConfParams.WEBSOCKET_URL);
+  if (websocketUrl) {
+    logger.info(`connecting to dicomweb.websocket-bridge: ${websocketUrl}`);
+    socket.connect();
+  }
+
+  // running clear cache and setup for 1h checks
+  clearCache();
+  setInterval(clearCache, 60000);
+})();
 
 //------------------------------------------------------------------
