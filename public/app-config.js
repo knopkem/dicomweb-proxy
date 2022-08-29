@@ -24,7 +24,7 @@ window.config = {
         wadoRoot: 'rs',
         qidoSupportsIncludeField: true,
         imageRendering: 'wadouri',
-        thumbnailRendering: 'wadors',
+        thumbnailRendering: 'wadouri',
         enableStudyLazyLoad: true,
         supportsFuzzyMatching: true,
       },

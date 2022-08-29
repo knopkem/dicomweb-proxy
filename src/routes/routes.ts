@@ -60,7 +60,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      reply.send(rsp.buffer); 
     } catch (error) {
       logger.error(error);
       reply.send(500);

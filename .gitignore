@@ -2,7 +2,9 @@
 .vscode
 .node-persist
 config/development.js
+config/development.json
 config/production.js
+config/production.json
 /build
 keycloak.json
 data

@@ -6,7 +6,10 @@ import { doWadoUri } from './dimse/wadoUri';
 import { LoggerSingleton } from './utils/logger';
 import { doWadoRs, DataFormat } from './dimse/wadoRs';
 import socketIOStream from '@wearemothership/socket.io-stream';
+import combineMerge from './utils/combineMerge';
+import deepmerge from 'deepmerge';
 
+const options = { arrayMerge: combineMerge };
 const websocketUrl = config.get(ConfParams.WEBSOCKET_URL) as string;
 const logger = LoggerSingleton.Instance;
 
@@ -29,7 +32,7 @@ socket.on('qido-request', async (data) => {
 
   if (data) {
     const lvl = stringToQueryLevel(level);
-    const json = await doFind(lvl, query);
+    const json = deepmerge.all(await doFind(lvl, query), options);
     logger.info('sending websocket response');
     socket.emit(data.uuid, json);
   }
