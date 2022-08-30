@@ -27,11 +27,11 @@ socket.on('connect', () => {
 });
 
 socket.on('qido-request', async (data) => {
-  logger.info('websocket QIDO request received, fetching metadata now...');
   const { level, query }: { level: string; query: Record<string, string> } = data;
 
   if (data) {
     const lvl = stringToQueryLevel(level);
+    logger.info('websocket QIDO request received, fetching metadata now...', level, data);
     const json = deepmerge.all(await doFind(lvl, query), options);
     logger.info('sending websocket response');
     socket.emit(data.uuid, json);
@@ -46,13 +46,13 @@ type WadoRequest = {
 }
 
 socket.on('wado-request', async (data) => {
-  logger.info('websocket WADO request received, fetching metadata now...');
   const { query }: { query: WadoRequest } = data;
   const {
     studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat
   } = query;
 
   if (data) {
+    logger.info('websocket WADO request received, fetching metadata now...');
     const { contentType, buffer } = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat });
     logger.info('sending websocket response stream');
     const stream = socketIOStream.createStream();
@@ -79,12 +79,12 @@ socket.on('wado-request', async (data) => {
 });
 
 socket.on('wadouri-request', async (data) => {
-  logger.info('websocket wadouri request received, fetching metadata now...');
   if (data) {
     const {
       studyUID, seriesUID, objectUID, studyInstanceUid, seriesInstanceUid, sopInstanceUid
     } = data.query;
     try {
+      logger.info('websocket wadouri request received, fetching metadata now...');
       const rsp = await doWadoUri({
         studyInstanceUid: studyInstanceUid ?? studyUID,
         seriesInstanceUid: seriesInstanceUid ?? seriesUID,
