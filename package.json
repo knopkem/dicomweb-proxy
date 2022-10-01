@@ -33,7 +33,7 @@
     "@fastify/static": "^6.5.0",
     "@iwharris/dicom-data-dictionary": "^1.26.0",
     "@wearemothership/socket.io-stream": "^0.9.1",
-    "config": "^3.3.7",
+    "config": "^3.3.8",
     "deepmerge": "^4.2.2",
     "dicom-dimse-native": "^2.4.0",
     "dicom-parser": "^1.8.13",
