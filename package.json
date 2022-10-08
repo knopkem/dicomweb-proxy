@@ -36,7 +36,7 @@
     "config": "^3.3.7",
     "deepmerge": "^4.2.2",
     "dicom-dimse-native": "^2.4.0",
-    "dicom-parser": "^1.8.13",
+    "dicom-parser": "^1.8.14",
     "fastify": "^4.5.3",
     "shelljs": "^0.8.5",
     "simple-node-logger": "^21.8.12",
