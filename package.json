@@ -37,7 +37,7 @@
     "deepmerge": "^4.2.2",
     "dicom-dimse-native": "^2.4.0",
     "dicom-parser": "^1.8.13",
-    "fastify": "^4.5.3",
+    "fastify": "^4.8.1",
     "shelljs": "^0.8.5",
     "simple-node-logger": "^21.8.12",
     "socket.io-client": "^4.5.1",
