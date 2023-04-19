@@ -1,6 +1,6 @@
 {
   "name": "dicomweb-proxy",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "A proxy to translate between dicomweb and dimse",
   "bin": "./build/app.js",
   "scripts": {
@@ -35,7 +35,7 @@
     "@wearemothership/socket.io-stream": "^0.9.1",
     "config": "^3.3.7",
     "deepmerge": "^4.2.2",
-    "dicom-dimse-native": "^2.4.0",
+    "dicom-dimse-native": "^2.4.1",
     "dicom-parser": "^1.8.13",
     "fastify": "^4.10.2",
     "shelljs": "^0.8.5",
