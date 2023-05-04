@@ -63,33 +63,23 @@ process.on('SIGINT', async () => {
 //------------------------------------------------------------------
 
 const port = config.get(ConfParams.HTTP_PORT) as number;
-(async () => {
-  logger.info('starting...', port);
-  try {
-    await server.listen({ port, host: '0.0.0.0' })
-    await server.ready();
-  }
-  catch (e) {
-    await logger.error(e);
-    process.exit(1);
-  }
-  logger.info(`web-server listening on port: ${port}`);
 
-  // if not using c-get, start our scp
-  if (!config.get(ConfParams.C_GET)) {
-    startScp();
-  }
-  sendEcho();
+// if not using c-get, start our scp
+if (!config.get(ConfParams.C_GET)) {
+  startScp();
+}
+setTimeout(sendEcho, 3000);
 
-  const websocketUrl = config.get(ConfParams.WEBSOCKET_URL);
-  if (websocketUrl) {
-    logger.info(`connecting to dicomweb.websocket-bridge: ${websocketUrl}`);
-    socket.connect();
-  }
+const websocketUrl = config.get(ConfParams.WEBSOCKET_URL);
+if (websocketUrl) {
+  logger.info(`connecting to dicomweb.websocket-bridge: ${websocketUrl}`);
+  socket.connect();
+}
 
-  // running clear cache and setup for 1h checks
-  clearCache();
-  setInterval(clearCache, 60000);
-})();
+// running clear cache and setup for 1h checks
+clearCache();
+setInterval(clearCache, 60000);
 
-//------------------------------------------------------------------
+logger.info('starting webserver...', port);
+server.listen({ port, host: '0.0.0.0' });
+

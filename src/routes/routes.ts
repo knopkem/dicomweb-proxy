@@ -41,10 +41,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const { query } = req;
       const json = deepmerge.all(await doFind(QUERY_LEVEL.STUDY, query), options);
-      reply.send(json);
+      return reply.send(json);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -60,10 +60,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer); 
+      return reply.send(rsp.buffer); 
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -77,11 +77,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -95,11 +95,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'rendered' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -113,11 +113,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, dataFormat: 'thumbnail' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -132,10 +132,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
 
     try {
       const json = deepmerge.all(await doFind(QUERY_LEVEL.SERIES, query), options);
-      reply.send(json);
+      return reply.send(json);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -150,10 +150,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
 
     try {
       const json = deepmerge.all(await doFind(QUERY_LEVEL.SERIES, query), options);
-      reply.send(json);
+      return reply.send(json);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -169,10 +169,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       try {
         const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid });
         reply.header('Content-Type', rsp.contentType);
-        reply.send(rsp.buffer);
+        return reply.send(rsp.buffer);
       } catch (error) {
         logger.error(error);
-        reply.send(500);
+        return reply.send(500);
       }
     });
   
@@ -186,11 +186,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -204,11 +204,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'rendered' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -222,11 +222,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, dataFormat: 'thumbnail' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -242,10 +242,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
 
     try {
       const json = deepmerge.all(await doFind(QUERY_LEVEL.IMAGE, query), options);
-      reply.send(json);
+      return reply.send(json);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -262,10 +262,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
 
     try {
       const rsp = await fetchMeta(query, studyInstanceUid, seriesInstanceUid);
-      reply.send(rsp);
+      return reply.send(rsp);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -279,11 +279,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -297,11 +297,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'rendered' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -315,11 +315,11 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'thumbnail' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     }
     catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -333,10 +333,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'pixeldata' });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -352,10 +352,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 
@@ -369,10 +369,10 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     try {
       const rsp = await doWadoUri({ studyInstanceUid: studyUID, seriesInstanceUid: seriesUID, sopInstanceUid: objectUID });
       reply.header('Content-Type', rsp.contentType);
-      reply.send(rsp.buffer);
+      return reply.send(rsp.buffer);
     } catch (error) {
       logger.error(error);
-      reply.send(500);
+      return reply.send(500);
     }
   });
 

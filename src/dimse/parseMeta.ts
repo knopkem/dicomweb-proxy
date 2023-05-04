@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 
 interface ValueType {
-  Value: string[] | number[] | any[];
+  Value: string[] | number[] | unknown[];
   vr: string;
 }
 type ElementType = Record<string, ValueType>;
@@ -48,8 +48,8 @@ function parseFile(filename: string): Promise<ElementType> {
         const wc = windowCenter ? parseFloat(windowCenter.split('\\')[0]) : 40;
         const windowWidth = dataset.string('x00281051');
         const ww = windowWidth ? parseFloat(windowWidth.split('\\')[0]) : 80;
-        const rescaleIntercept = parseFloat(dataset.string('x00281052'));
-        const rescaleSlope = parseFloat(dataset.string('x00281053'));
+        const rescaleIntercept = parseFloat(dataset.string('x00281052') || '1');
+        const rescaleSlope = parseFloat(dataset.string('x00281053') || '1');
         const iopString = dataset.string('x00200037');
         const iop = iopString ? iopString.split('\\').map((e: string) => parseFloat(e)) : null;
         const ippString = dataset.string('x00200032');
@@ -95,16 +95,17 @@ function parseFile(filename: string): Promise<ElementType> {
   });
 }
 
-export function parseMeta(json: any, studyInstanceUID: string, seriesInstanceUID: string): Promise<unknown> {
+export function parseMeta(json: object, studyInstanceUID: string, seriesInstanceUID: string): Promise<unknown> {
   const logger = LoggerSingleton.Instance;
   logger.info(`parsing series ${seriesInstanceUID}`);
 
   const parsing = new Array<Promise<ElementType>>();
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
-  for (let i = 0; i < json.length; i += 1) {
-    const sopInstanceUid = json[i]['00080018'].Value[0];
+  for (const [key] of Object.entries(json)) {
+    const sopInstanceUid = json[key]['00080018'].Value[0];
     const pathname = path.join(storagePath, studyInstanceUID, sopInstanceUid);
     parsing.push(parseFile(pathname));
+    
   }
   return Promise.all(parsing);
 }

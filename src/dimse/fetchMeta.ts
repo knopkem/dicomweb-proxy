@@ -1,4 +1,4 @@
-import { sendCFindRequest } from './findData';
+import { sendCFindRequest, IQueryParams } from './findData';
 import { config, ConfParams } from '../utils/config';
 import { fileExists } from '../utils/fileHelper';
 import { LoggerSingleton } from '../utils/logger';
@@ -9,7 +9,7 @@ import { Node as DicomNode } from 'dicom-dimse-native';
 
 import path from 'path';
 
-export async function fetchMeta(query: any, studyInstanceUID: string, seriesInstanceUID: string): Promise<unknown> {
+export async function fetchMeta(query: IQueryParams, studyInstanceUID: string, seriesInstanceUID: string): Promise<unknown> {
   const logger = LoggerSingleton.Instance;
   const peers = config.get(ConfParams.PEERS) as DicomNode[];
   const fullMeta = config.get(ConfParams.FULL_META) as boolean;
@@ -17,10 +17,10 @@ export async function fetchMeta(query: any, studyInstanceUID: string, seriesInst
   for (let i = 0; i < peers.length; i++) {
     const peer = peers[i];
     logger.info(`checking peer for data: ${peer.aet}`);
-    const json = (await sendCFindRequest(QUERY_LEVEL.IMAGE, peer, query)) as any;
+    const json = (await sendCFindRequest(QUERY_LEVEL.IMAGE, peer, query)) as object;
 
     // make sure c-find worked
-    if (json.length === 0) {
+    if (Object.entries(json).length === 0) {
       logger.info(`no data found on peer: ${peer.aet}`);
       continue;
     }
@@ -30,8 +30,8 @@ export async function fetchMeta(query: any, studyInstanceUID: string, seriesInst
     }
 
     // check if fetch is needed
-    for (let i = 0; i < json.length; i += 1) {
-      const sopInstanceUid = json[i]['00080018'].Value[0];
+    for (const [key] of Object.entries(json)) {
+      const sopInstanceUid = json[key]['00080018'].Value[0];
       const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
       const pathname = path.join(storagePath, studyInstanceUID, sopInstanceUid);
       const exists = await fileExists(pathname);

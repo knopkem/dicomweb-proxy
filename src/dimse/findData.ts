@@ -13,7 +13,7 @@ const findDicomName = (name: string): string | undefined => {
   return undefined;
 };
 
-interface IQueryParams {
+export interface IQueryParams {
   [key: string]: string;
 }
 

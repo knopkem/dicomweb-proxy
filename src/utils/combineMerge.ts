@@ -3,7 +3,7 @@ import deepmerge from "deepmerge";
 const combineMerge = (target: any, source: any, options: any) => {
 	const destination = target.slice();
   
-	source.forEach((item: any, index: number) => {
+	source.forEach((item: object, index: number) => {
 		if (typeof destination[index] === 'undefined') {
 		destination[index] = options.cloneUnlessOtherwiseSpecified(item, options);
 		} else if (options.isMergeableObject(item)) {
