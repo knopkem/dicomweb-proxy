@@ -1,0 +1,2 @@
+default storage location for cached dicom-images
+Note: you can customize this via the config file, also images are regularily pruned, depending on the "cacheRetentionMinutes" setting
