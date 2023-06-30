@@ -1,6 +1,6 @@
 {
   "name": "dicomweb-proxy",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "A proxy to translate between dicomweb and dimse",
   "bin": "./build/app.js",
   "scripts": {
@@ -46,18 +46,12 @@
   "devDependencies": {
     "@types/config": "^3.3.0",
     "@types/eslint": "^8.40.2",
-    "@types/eslint-config-prettier": "^6.11.0",
-    "@types/eslint-plugin-prettier": "^3.1.0",
     "@types/node": "^20.3.1",
     "@types/prettier": "^2.7.3",
     "@types/shelljs": "^0.8.12",
-    "@typescript-eslint/eslint-plugin": "^5.60.0",
-    "@typescript-eslint/parser": "^5.60.0",
-    "eslint": "^8.43.0",
-    "eslint-config-airbnb-base": "^15.0.0",
+    "@typescript-eslint/eslint-plugin": "^5.60.1",
+    "@typescript-eslint/parser": "^5.60.1",
     "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-prettier": "^4.2.1",
     "prettier": "^2.8.8",
     "ts-node": "^10.9.1",
     "tslib": "^2.5.3",

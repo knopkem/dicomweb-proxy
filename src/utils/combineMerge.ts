@@ -1,6 +1,6 @@
 import deepmerge from "deepmerge";
 
-const combineMerge = (target: any, source: any, options: any) => {
+const combineMerge = (target, source, options) => {
 	const destination = target.slice();
   
 	source.forEach((item: object, index: number) => {

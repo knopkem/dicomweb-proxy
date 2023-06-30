@@ -39,56 +39,51 @@ socket.on('qido-request', async (data) => {
 });
 
 type WadoRequest = {
-  studyInstanceUid: string,
-  seriesInstanceUid?: string,
-  sopInstanceUid?: string,
-  dataFormat?: DataFormat
-}
+  studyInstanceUid: string;
+  seriesInstanceUid?: string;
+  sopInstanceUid?: string;
+  dataFormat?: DataFormat;
+};
 
 socket.on('wado-request', async (data) => {
   const { query }: { query: WadoRequest } = data;
-  const {
-    studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat
-  } = query;
+  const { studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat } = query;
 
   if (data) {
     logger.info('websocket WADO request received, fetching metadata now...');
     const { contentType, buffer } = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat });
     logger.info('sending websocket response stream');
     const stream = socketIOStream.createStream();
-    socketIOStream(socket).emit(data.uuid, stream, { contentType: contentType })
+    socketIOStream(socket).emit(data.uuid, stream, { contentType: contentType });
     let offset = 0;
-    const chunkSize = 512*1024 // 512kb
+    const chunkSize = 512 * 1024; // 512kb
     const writeBuffer = () => {
       let ok = true;
       do {
-        const b = Buffer.alloc(chunkSize)
-        buffer.copy(b, 0, offset, offset + chunkSize)
-        ok = stream.write(b)
-        offset += chunkSize
-      } while (offset < buffer.length && ok)
+        const b = Buffer.alloc(chunkSize);
+        buffer.copy(b, 0, offset, offset + chunkSize);
+        ok = stream.write(b);
+        offset += chunkSize;
+      } while (offset < buffer.length && ok);
       if (offset < buffer.length) {
-        stream.once("drain", writeBuffer)
+        stream.once('drain', writeBuffer);
+      } else {
+        stream.end();
       }
-      else {
-        stream.end()
-      }
-    }
-    writeBuffer()
+    };
+    writeBuffer();
   }
 });
 
 socket.on('wadouri-request', async (data) => {
   if (data) {
-    const {
-      studyUID, seriesUID, objectUID, studyInstanceUid, seriesInstanceUid, sopInstanceUid
-    } = data.query;
+    const { studyUID, seriesUID, objectUID, studyInstanceUid, seriesInstanceUid, sopInstanceUid } = data.query;
     try {
       logger.info('websocket wadouri request received, fetching metadata now...');
       const rsp = await doWadoUri({
         studyInstanceUid: studyInstanceUid ?? studyUID,
         seriesInstanceUid: seriesInstanceUid ?? seriesUID,
-        sopInstanceUid: sopInstanceUid ?? objectUID
+        sopInstanceUid: sopInstanceUid ?? objectUID,
       });
       socket.emit(data.uuid, rsp);
     } catch (error) {

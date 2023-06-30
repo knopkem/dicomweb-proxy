@@ -20,7 +20,7 @@ export interface IQueryParams {
 export async function doFind(level: QUERY_LEVEL, query: IQueryParams): Promise<any> {
   const peers = config.get(ConfParams.PEERS) as DicomNode[];
 
-  const promises: Array<Promise<any>> = [];
+  const promises: Array<Promise<unknown>> = [];
 
   peers.forEach((peer) => {
     promises.push(sendCFindRequest(level, peer, query));
