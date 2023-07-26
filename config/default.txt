@@ -60,10 +60,10 @@
   // number of associations to PACS run in parallel
   "maxAssociations": 4,
 
-  // do not issue c-find if search contains less characters
+  // do not issue c-find if search input contains (string VR) less characters (avoid load on PACS)
   "qidoMinChars": 0,
 
-  // auto append * for patient name query
+  // auto append * for (string VR) input
   "qidoAppendWildcard": true,
 
   // enable verbose logging to std::out (contains DIMSE output)

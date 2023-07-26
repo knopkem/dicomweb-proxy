@@ -13,6 +13,14 @@ const findDicomName = (name: string): string | undefined => {
   return undefined;
 };
 
+const findVR = (name: string): string => {
+  const dataElement = get_element(name);
+  if (dataElement) {
+    return dataElement.vr;
+  }
+  return '';
+};
+
 export interface IQueryParams {
   [key: string]: string;
 }
@@ -69,11 +77,16 @@ export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, qu
   const minCharsQido = config.get(ConfParams.MIN_CHARS) as number;
   Object.keys(query).forEach((propName) => {
     const tag = findDicomName(propName);
+    const vr = findVR(propName);
     if (tag) {
       let v = query[propName];
-      // patient name check
-      if (tag === '00100010') {
-        // check if minimum number of chars for patient name are given
+      // string vr types check
+      if (['PN', 'LO', 'LT', 'SH', 'ST'].includes(vr)) {
+        // just make sure to remove any wildcards from prefix and suffix
+        v = v.replace(/^[*]/, '');
+        v = v.replace(/[*]$/, '');
+        
+        // check if minimum number of chars are reached from input
         if (minCharsQido > v.length) {
           invalidInput = true;
         }
