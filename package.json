@@ -30,7 +30,7 @@
     "@fastify/cors": "^8.3.0",
     "@fastify/helmet": "^10.1.1",
     "@fastify/sensible": "^5.2.0",
-    "@fastify/static": "^6.10.2",
+    "@fastify/static": "^6.11.0",
     "@iwharris/dicom-data-dictionary": "^1.26.0",
     "@wearemothership/socket.io-stream": "^0.9.1",
     "config": "^3.3.9",
