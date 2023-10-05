@@ -6,7 +6,7 @@
   "scripts": {
     "start": "ts-node src/app.ts",
     "format": "npx prettier ./src",
-    "build": "tsc --p ./src/tsconfig.json",
+    "build": "tsc --p ./tsconfig.json",
     "pkg:win": "npm run build && npx pkg --targets node16-win-x64 package.json"
   },
   "repository": {
