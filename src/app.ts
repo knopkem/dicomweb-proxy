@@ -25,7 +25,12 @@ server.setNotFoundHandler((req: FastifyRequest, res: FastifyReply) => {
 });
 server.register(fastifyCors, {});
 server.register(fastifySensible);
-server.register(fastifyHelmet, { contentSecurityPolicy: false });
+server.register(fastifyHelmet, {
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: { policy: 'require-corp' },
+  crossOriginResourcePolicy: { policy: 'same-site' },
+  crossOriginOpenerPolicy: { policy: 'same-origin' },
+});
 server.register(fastifyAutoload, {
   dir: path.join(__dirname, 'routes'),
 });
@@ -82,4 +87,3 @@ setInterval(clearCache, 60000);
 
 logger.info('starting webserver...', port);
 server.listen({ port, host: '0.0.0.0' });
-

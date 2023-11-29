@@ -25,10 +25,10 @@ export interface IQueryParams {
   [key: string]: string;
 }
 
-export async function doFind(level: QUERY_LEVEL, query: IQueryParams): Promise<any> {
+export async function doFind(level: QUERY_LEVEL, query: IQueryParams): Promise<Record<string,string>[][]> {
   const peers = config.get(ConfParams.PEERS) as DicomNode[];
 
-  const promises: Array<Promise<unknown>> = [];
+  const promises: Array<Promise<Record<string,string>[]>> = [];
 
   peers.forEach((peer) => {
     promises.push(sendCFindRequest(level, peer, query));
@@ -37,7 +37,7 @@ export async function doFind(level: QUERY_LEVEL, query: IQueryParams): Promise<a
   return Promise.all(promises);
 }
 
-export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, query: IQueryParams): Promise<unknown> {
+export async function sendCFindRequest(level: QUERY_LEVEL, target: DicomNode, query: IQueryParams): Promise<Record<string,string>[]> {
   const logger = LoggerSingleton.Instance;
 
   // add query retrieve level
