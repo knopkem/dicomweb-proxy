@@ -39,35 +39,12 @@ window.config = {
             omitQuotationForMultipartRequest: !0
         }
     }, {
-        namespace: "@ohif/extension-default.dataSourcesModule.dicomweb",
-        sourceName: "dicomweb2",
-        configuration: {
-            friendlyName: "AWS S3 Static wado secondary server",
-            name: "aws",
-            wadoUriRoot: "https://d28o5kq0jsoob5.cloudfront.net/dicomweb",
-            qidoRoot: "https://d28o5kq0jsoob5.cloudfront.net/dicomweb",
-            wadoRoot: "https://d28o5kq0jsoob5.cloudfront.net/dicomweb",
-            qidoSupportsIncludeField: !1,
-            supportsReject: !1,
-            imageRendering: "wadors",
-            thumbnailRendering: "wadors",
-            enableStudyLazyLoad: !0,
-            supportsFuzzyMatching: !1,
-            supportsWildcard: !0,
-            staticWado: !0,
-            singlepart: "bulkdata,video",
-            bulkDataURI: {
-                enabled: !0,
-                relativeResolution: "studies"
-            },
-            omitQuotationForMultipartRequest: !0
-        }
-    }, {
         namespace: "@ohif/extension-default.dataSourcesModule.dicomwebproxy",
         sourceName: "dicomwebproxy",
         configuration: {
             friendlyName: "dicomweb delegating proxy",
-            name: "dicomwebproxy"
+            name: "dicomwebproxy",
+            
         }
     }, {
         namespace: "@ohif/extension-default.dataSourcesModule.dicomjson",
