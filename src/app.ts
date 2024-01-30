@@ -12,6 +12,7 @@ import { ConfParams, config } from './utils/config';
 import { shutdown } from './dimse/store';
 import { LoggerSingleton } from './utils/logger';
 import { socket } from './socket';
+import * as closeWithGrace from 'close-with-grace';
 
 const logger = LoggerSingleton.Instance;
 
@@ -49,11 +50,13 @@ process.on('uncaughtException', async (err) => {
 
 //------------------------------------------------------------------
 
-process.on('SIGINT', async () => {
-  logger.info('shutting down web server...');
+closeWithGrace.default({ delay: 500 }, async function ({ signal, err, manual }) {
+  if (err) {
+    console.error(err)
+  }
+  logger.info('shutting down web server...', signal, manual);
   try {
     await server.close();
-    logger.info('webserver shutdown successfully');
     await socket.close();
   } catch (error) {
     logger.error(error);
@@ -62,8 +65,7 @@ process.on('SIGINT', async () => {
     logger.info('shutting down DICOM SCP server...');
     await shutdown();
   }
-  process.exit(1);
-});
+})
 
 //------------------------------------------------------------------
 
