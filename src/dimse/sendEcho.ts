@@ -28,7 +28,12 @@ export async function sendCEchoRequest(target: DicomNode) {
     echoScu(options, (result: string) => {
       if (result && result.length > 0) {
         try {
-          logger.info(JSON.parse(result));
+          const res = JSON.parse(result);
+          if (res.code === 2) {
+            logger.error(res.message);
+          } else {
+            logger.info(res.message);
+          }
           resolve(true);
         } catch (error) {
           logger.error(result);

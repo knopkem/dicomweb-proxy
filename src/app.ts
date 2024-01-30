@@ -50,14 +50,14 @@ process.on('uncaughtException', async (err) => {
 //------------------------------------------------------------------
 
 process.on('SIGINT', async () => {
+  logger.info('shutting down web server...');
   try {
     await server.close();
+    logger.info('webserver shutdown successfully');
     await socket.close();
   } catch (error) {
     logger.error(error);
   }
-  logger.info('shutting down web server...');
-  logger.info('webserver shutdown successfully');
   if (!config.get(ConfParams.C_GET)) {
     logger.info('shutting down DICOM SCP server...');
     await shutdown();
