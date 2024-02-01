@@ -140,6 +140,26 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
   });
 
   //------------------------------------------------------------------
+  
+  server.get<{
+    Params: IParamsImage;
+    Querystring: QueryParams;
+  }>('/rs/studies/:studyInstanceUid/series/:seriesInstanceUid/bulkdata/:sopInstanceUid', async (req, reply) => {
+    const { studyInstanceUid, seriesInstanceUid, sopInstanceUid } = req.params;
+
+   
+    try {
+      const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'bulkdata' });
+      reply.header('Content-Type', rsp.contentType);
+      return reply.send(rsp.buffer);
+    }
+    catch (error) {
+      logger.error(error);
+      return reply.send(500);
+    }
+  });
+
+  //------------------------------------------------------------------
 
   server.get<{
     Params: IParamsStudy;
@@ -296,6 +316,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
 
     try {
       const rsp = await doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat: 'rendered' });
+      console.log(rsp);
       reply.header('Content-Type', rsp.contentType);
       return reply.send(rsp.buffer);
     }

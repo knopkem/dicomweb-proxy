@@ -15,7 +15,7 @@ import util from 'util';
 
 const execFile = util.promisify(exFile);
 
-export type DataFormat = 'pixeldata' | 'bulkdata' | 'rendered' | 'thumbnail'
+export type DataFormat = 'pixeldata' | 'bulkdata' | 'rendered' | 'thumbnail';
 
 type WadoRsArgs = {
   studyInstanceUid: string;
@@ -30,10 +30,10 @@ type WadoRsResponse = {
 };
 type QidoResponse = {
   [key: string]: {
-    Value: string[]
-    vr: string
-  }
-}
+    Value: string[];
+    vr: string;
+  };
+};
 
 const term = '\r\n';
 
@@ -42,30 +42,22 @@ const term = '\r\n';
  * It will try twice, once without frames, the other with all frames.
  * If both fail it will throw the error returned by DCMTK.
  * If no resulting JPEG can be found, then it will return undefined.
- * 
+ *
  * @param filepath Path to the file to convert
  * @param [asThumbnail=false] Return as thumbnail
  */
 async function convertToJpeg(filepath: string, asThumbnail = false) {
   try {
-    await execFile(
-      'dcmj2pnm',
-      ['+oj', '+Jq', asThumbnail ? '10' : '100', filepath, `${filepath}.jpg`]
-    );
-  }
-  catch (e) {
+    await execFile('dcmj2pnm', ['+oj', '+Jq', asThumbnail ? '10' : '100', filepath, `${filepath}.jpg`]);
+  } catch (e) {
     // Try again but with all frames - if this fails don't catch the error (fail!)
-    await execFile(
-      'dcmj2pnm',
-      ['+oj', '+Jq', asThumbnail ? '10' : '100', '+Fa', filepath, `${filepath}`]
-    );
+    await execFile('dcmj2pnm', ['+oj', '+Jq', asThumbnail ? '10' : '100', '+Fa', filepath, `${filepath}`]);
   }
   let exists = await fileExists(`${filepath}.jpg`);
   let filePath;
   if (exists) {
     filePath = `${filepath}.jpg`;
-  }
-  else {
+  } else {
     exists = await fileExists(`${filepath}.0.jpg`);
     if (exists) {
       filePath = `${filepath}.0.jpg`;
@@ -83,14 +75,14 @@ async function convertToJpeg(filepath: string, asThumbnail = false) {
  * bulkdata and PixelData return the DCM pixeldata buffer
  * rendered returns a JPEG file buffer
  * otherwise returns a DICOM file buffer
- * 
+ *
  * Attaches needed headers
  */
 interface AddFileToBuffer {
-  pathname: string,
-  filename: string,
-  instanceInfo: InstanceInfo,
-  dataFormat?: DataFormat,
+  pathname: string;
+  filename: string;
+  instanceInfo: InstanceInfo;
+  dataFormat?: DataFormat;
 }
 
 async function addFileToBuffer({ pathname, filename, dataFormat, instanceInfo }: AddFileToBuffer): Promise<Buffer> {
@@ -103,19 +95,18 @@ async function addFileToBuffer({ pathname, filename, dataFormat, instanceInfo }:
     transferSyntax = '1.2.840.10008.1.2';
   }
 
-  let contentLocation = `/studies/${instanceInfo.study}`
+  let contentLocation = `/studies/${instanceInfo.study}`;
   if (instanceInfo.series) {
-    contentLocation += `/series/${instanceInfo.series}`
+    contentLocation += `/series/${instanceInfo.series}`;
   }
   if (instanceInfo.instance) {
-    contentLocation += `/instance/${instanceInfo.instance}`
+    contentLocation += `/instance/${instanceInfo.instance}`;
   }
 
   // Compress the file
   try {
     await compressFile(filepath, pathname, transferSyntax);
-  }
-  catch (e) {
+  } catch (e) {
     logger.error('Failed to compress', filepath);
   }
 
@@ -123,26 +114,33 @@ async function addFileToBuffer({ pathname, filename, dataFormat, instanceInfo }:
   const data = await fs.readFile(filepath);
   let returnData;
   switch (dataFormat) {
-  case 'bulkdata':
-  case 'pixeldata': {
-    // Get the pixeldata from the DICOM and add it to the buffer.
-    const dataset = dicomParser.parseDicom(data);
-    const pixeldataElement = dataset.elements.x7fe00010;
-    buffArray.push(Buffer.from(`Content-Type:application/octet-stream;${term}`));
-    returnData = Buffer.from(dataset.byteArray.buffer, pixeldataElement.dataOffset, pixeldataElement.length);
-    break;
-  }
-  case 'rendered': {
-    // Convert the DCM file to a JPEG and return that
-    buffArray.push(Buffer.from(`Content-Type:image/jpeg;${term}`));
-    returnData = await convertToJpeg(filepath);
-    break;
-  }
-  default: {
-    // Just return the DCM file
-    buffArray.push(Buffer.from(`Content-Type:${config.get(ConfParams.MIMETYPE)};transfer-syntax:${config.get(ConfParams.XTRANSFER)}${term}`));
-    returnData = data;
-  }
+    case 'bulkdata': {
+      // Get the value from the DICOM and add it to the buffer.
+      const dataset = dicomParser.parseDicom(data);
+      const dataElement = dataset.elements.x00420011; // for the moment restrict this to bulkdata from encapsulated pdfs
+      buffArray.push(Buffer.from(`Content-Type:application/octet-stream;${term}`));
+      returnData = dataElement ? Buffer.from(dataset.byteArray.buffer, dataElement.dataOffset, dataElement.length) : Buffer.from([]);
+      break;
+    }
+    case 'pixeldata': {
+      // Get the pixeldata from the DICOM and add it to the buffer.
+      const dataset = dicomParser.parseDicom(data);
+      const pixeldataElement = dataset.elements.x7fe00010;
+      buffArray.push(Buffer.from(`Content-Type:application/octet-stream;${term}`));
+      returnData = pixeldataElement ? Buffer.from(dataset.byteArray.buffer, pixeldataElement.dataOffset, pixeldataElement.length) : Buffer.from([]);
+      break;
+    }
+    case 'rendered': {
+      // Convert the DCM file to a JPEG and return that
+      buffArray.push(Buffer.from(`Content-Type:image/jpeg;${term}`));
+      returnData = await convertToJpeg(filepath);
+      break;
+    }
+    default: {
+      // Just return the DCM file
+      buffArray.push(Buffer.from(`Content-Type:${config.get(ConfParams.MIMETYPE)};transfer-syntax:${config.get(ConfParams.XTRANSFER)}${term}`));
+      returnData = data;
+    }
   }
   buffArray.push(Buffer.from(`Content-Location:${contentLocation};${term}`));
   buffArray.push(Buffer.from(term));
@@ -152,21 +150,21 @@ async function addFileToBuffer({ pathname, filename, dataFormat, instanceInfo }:
 }
 
 type InstanceInfo = {
-  study: string,
-  series?: string,
-  instance?: string
-}
+  study: string;
+  series?: string;
+  instance?: string;
+};
 
 export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat }: WadoRsArgs): Promise<WadoRsResponse> {
   const logger = LoggerSingleton.Instance;
   // Set up all the paths and query levels.
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
-  let queryLevel = QUERY_LEVEL.STUDY
+  let queryLevel = QUERY_LEVEL.STUDY;
   const studyPath = path.join(storagePath, studyInstanceUid);
   let pathname = studyPath;
   let filename = '';
   if (seriesInstanceUid) {
-    queryLevel = QUERY_LEVEL.SERIES
+    queryLevel = QUERY_LEVEL.SERIES;
   }
   if (sopInstanceUid) {
     filename = sopInstanceUid;
@@ -183,25 +181,33 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
   const foundInstances: InstanceInfo[] = [];
   if (isDir) {
     // It's a directory, what things do we expect to find in this directory for this search?
-    const json = deepmerge.all(await doFind(QUERY_LEVEL.IMAGE, { StudyInstanceUID: studyInstanceUid, SeriesInstanceUID: seriesInstanceUid ?? '', SOPInstanceUID: sopInstanceUid ?? '' }), { arrayMerge: combineMerge}) as QidoResponse[];
-    const foundPromises = await Promise.all(json.map(async (instance) => {
-      if (instance['00080018']) {
-        const instanceUid = instance['00080018'].Value[0];
-        const seriesUid = instance['0020000E'].Value[0];
-        foundInstances.push({
-          study: studyInstanceUid,
-          series: seriesUid,
-          instance: instanceUid
-        });
-        return fileExists(path.join(studyPath, instanceUid));
-      }
-      return true;
-    }));
+    const json = deepmerge.all(
+      await doFind(QUERY_LEVEL.IMAGE, {
+        StudyInstanceUID: studyInstanceUid,
+        SeriesInstanceUID: seriesInstanceUid ?? '',
+        SOPInstanceUID: sopInstanceUid ?? '',
+      }),
+      { arrayMerge: combineMerge }
+    ) as QidoResponse[];
+    const foundPromises = await Promise.all(
+      json.map(async (instance) => {
+        if (instance['00080018']) {
+          const instanceUid = instance['00080018'].Value[0];
+          const seriesUid = instance['0020000E'].Value[0];
+          foundInstances.push({
+            study: studyInstanceUid,
+            series: seriesUid,
+            instance: instanceUid,
+          });
+          return fileExists(path.join(studyPath, instanceUid));
+        }
+        return true;
+      })
+    );
 
     // If all of the files for this search exist, then we're gonna use the cache!
     useCache = foundPromises.reduce((prev, curr) => prev && curr, true);
-  }
-  else {
+  } else {
     // If the file exists, use the cache
     useCache = await fileExists(pathname);
   }
@@ -221,10 +227,9 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     if (buff) {
       return {
         contentType: 'image/jpeg',
-        buffer: buff
+        buffer: buff,
       };
-    }
-    else {
+    } else {
       throw new Error('Failed to create thumbnail');
     }
   }
@@ -233,17 +238,18 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
   try {
     if (isDir) {
       // We're in a directory, loop through the files we want and attach them to the return buffer
-      const files = await fs.readdir(pathname)
-      buffers = await Promise.all(files.map(async (file) => {
-        const instanceInfo = foundInstances.find((i) => i.instance === file)
-        if (instanceInfo) {
-          return addFileToBuffer({ pathname, filename: file, dataFormat, instanceInfo });
-        }
-      }))
-    }
-    else {
+      const files = await fs.readdir(pathname);
+      buffers = await Promise.all(
+        files.map(async (file) => {
+          const instanceInfo = foundInstances.find((i) => i.instance === file);
+          if (instanceInfo) {
+            return addFileToBuffer({ pathname, filename: file, dataFormat, instanceInfo });
+          }
+        })
+      );
+    } else {
       // Attach the one file that we need to the return buffer
-      const instanceInfo = { study: studyInstanceUid, series: seriesInstanceUid, instance: sopInstanceUid }
+      const instanceInfo = { study: studyInstanceUid, series: seriesInstanceUid, instance: sopInstanceUid };
       buffers = [await addFileToBuffer({ pathname: studyPath, filename, dataFormat, instanceInfo })];
     }
 
@@ -265,7 +271,7 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     if (dataFormat === 'rendered') {
       type = 'image/jpeg';
     }
-    if (dataFormat?.match(/bulkdata|pixeldata/ig)) {
+    if (dataFormat?.match(/bulkdata|pixeldata/gi)) {
       type = 'application/octet-stream';
     }
 
@@ -274,7 +280,6 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
       contentType,
       buffer: Buffer.concat(buffArray),
     });
-
   } catch (error) {
     logger.error(`failed to process ${pathname}`);
     throw error;

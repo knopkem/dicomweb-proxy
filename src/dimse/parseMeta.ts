@@ -1,12 +1,14 @@
 import { LoggerSingleton } from '../utils/logger';
 import { ConfParams, config } from '../utils/config';
 import { fileExists } from '../utils/fileHelper';
+import { get_element } from '@iwharris/dicom-data-dictionary';
 import dicomParser from 'dicom-parser';
 import fs from 'fs';
 import path from 'path';
 
 interface ValueType {
-  Value: string[] | number[] | unknown[];
+  Value?: string[] | number[] | unknown[];
+  BulkDataURI?: string;
   vr: string;
 }
 type ElementType = Record<string, ValueType>;
@@ -57,21 +59,25 @@ function parseFile(filename: string): Promise<ElementType> {
         const instanceNumber = dataset.string('x00200013');
         const sliceThickness = dataset.string('x00180050');
         const sliceLocation = dataset.string('x00201041');
+        const encDocumentValue = dataset.elements.x00420011;
+        const encapsulatedDocument = encDocumentValue
+          ? Buffer.from(dataset.byteArray.buffer, encDocumentValue.dataOffset, encDocumentValue.length).toString('base64')
+          : null;
 
         // append to all results
-        const result: ElementType = {
+        const resultStatic: ElementType = {
           '00100010': { Value: [{ Alphabetic: patientName }], vr: 'PN' },
           '00100020': { Value: [patentID], vr: 'LO' },
           '0020000D': { Value: [studyInstanceUID], vr: 'UI' },
-          '00080020': { Value: [studyDate], vr: 'DA' },
-          '00080030': { Value: [studyTime], vr: 'TM' },
+          ...(studyDate && { '00080020': { Value: [studyDate], vr: 'DA' } }),
+          ...(studyTime && { '00080030': { Value: [studyTime], vr: 'TM' } }),
           '0020000E': { Value: [seriesInstanceUID], vr: 'UI' },
-          '00200011': { Value: [seriesNumber], vr: 'IS' },
+          ...(seriesNumber && { '00200011': { Value: [seriesNumber], vr: 'IS' } }),
           '00080018': { Value: [sopInstanceUID], vr: 'UI' },
           '00080016': { Value: [sopClassUID], vr: 'UI' },
-          '00080060': { Value: [modality], vr: 'CS' },
+          ...(modality && { '00080060': { Value: [modality], vr: 'CS' } }),
           '00280002': { Value: [samplesPerPixel], vr: 'US' },
-          '00280004': { Value: [photometricInterpretation], vr: 'CS' },
+          ...(photometricInterpretation && { '00280004': { Value: [photometricInterpretation], vr: 'CS' } }),
           '00280010': { Value: [rows], vr: 'US' },
           '00280011': { Value: [cols], vr: 'US' },
           '00280030': { Value: pixelSpacing, vr: 'DS' },
@@ -85,11 +91,38 @@ function parseFile(filename: string): Promise<ElementType> {
           '00281053': { Value: [rescaleSlope], vr: 'DS' },
           ...(iop && { '00200037': { Value: iop, vr: 'DS' } }),
           ...(ipp && { '00200032': { Value: ipp, vr: 'DS' } }),
-          '00200013': { Value: [instanceNumber], vr: 'IS' },
-          '00180050': { Value: [sliceThickness], vr: 'DS' },
-          '00201041': { Value: [sliceLocation], vr: 'DS' },
+          ...(instanceNumber && { '00200013': { Value: [instanceNumber], vr: 'IS' } }),
+          ...(sliceThickness && { '00180050': { Value: [sliceThickness], vr: 'DS' } }),
+          ...(sliceLocation && { '00201041': { Value: [sliceLocation], vr: 'DS' } }),
+          //...( encapsulatedDocument && {'00420011': { Value: [encapsulatedDocument], vr: 'OB' }}), // unfortunately this does not work
+          ...(encapsulatedDocument && { '00420011': { BulkDataURI: `series/${seriesInstanceUID}/bulkdata/${sopInstanceUID}`, vr: 'OB' } }),
         };
-        resolve(result);
+
+        const keys: string[] = [];
+        for (const propertyName in dataset.elements) {
+          keys.push(propertyName);
+        }
+        keys.sort();
+
+        let resultDynamic: ElementType = {};
+        for (let k = 0; k < keys.length; k++) {
+          const propertyName = keys[k];
+          const element = dataset.elements[propertyName];
+          const tag = element.tag.substring(1).toUpperCase();
+          const vr = element.vr || get_element(tag)?.vr;
+          const tagValue = dataset.string(element.tag);
+
+          if (tagValue) {
+            resultDynamic = Object.assign(resultDynamic, {
+              [tag]: {
+                Value: [tagValue],
+                vr,
+              },
+            });
+          }
+        }
+
+        resolve({ ...resultDynamic, ...resultStatic });
       });
     });
   });
@@ -105,7 +138,6 @@ export function parseMeta(json: object, studyInstanceUID: string, seriesInstance
     const sopInstanceUid = json[key]['00080018'].Value[0];
     const pathname = path.join(storagePath, studyInstanceUID, sopInstanceUid);
     parsing.push(parseFile(pathname));
-    
   }
   return Promise.all(parsing);
 }
