@@ -4,7 +4,7 @@ A proxy to translate between [DICOMWEB](https://www.dicomstandard.org/dicomweb) 
 
 ## Description
 * A nodejs tool to easily connect a DICOMWEB capable DICOM viewer to one or more legacy PACS that only know DIMSE services.  
-Comes preinstalled with the popular [OHIF DICOM Web Viewer](https://github.com/OHIF/Viewers) (version 3.7.0-beta.13).
+Comes preinstalled with the popular [OHIF DICOM Web Viewer](https://github.com/OHIF/Viewers) (version 3.8.0).
 
 Note: Since OHIF 3 is still beta you can also switch back to OHIF 2 version: just remove the public directory and unzip public.zip to public
 

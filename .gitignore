@@ -8,6 +8,7 @@ config/production.json
 /build
 keycloak.json
 data
+.DS_STORE
 
 # Logs
 logs
