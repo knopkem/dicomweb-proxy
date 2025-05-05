@@ -9,7 +9,7 @@ import { QUERY_LEVEL } from './querLevel';
 import deepmerge from 'deepmerge';
 import dicomParser from 'dicom-parser';
 import combineMerge from '../utils/combineMerge';
-import { fileExists } from '../utils/fileHelper';
+import { fileExists, waitForFile } from '../utils/fileHelper';
 import { execFile as exFile } from 'child_process';
 import util from 'util';
 
@@ -217,6 +217,14 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
     // Could this be improved to just get the needed files?
     logger.info(`fetching ${pathname}`);
     await waitOrFetchData(studyInstanceUid, seriesInstanceUid ?? '', sopInstanceUid ?? '', queryLevel);
+
+    // Check if the file actually exists on disk, it appears that on some
+    // os's/filesystems, the DIMSE request may complete before the data is
+    // actually written to disk.
+    const fileOnDisk = await waitForFile(pathname);
+    if (fileOnDisk) {
+      isDir = false;
+    }
   }
 
   // We only need a thumbnail - get it and bail.
