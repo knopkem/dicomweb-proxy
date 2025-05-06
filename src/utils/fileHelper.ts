@@ -26,6 +26,23 @@ export async function fileExists(pathname: string): Promise<boolean> {
   }
 }
 
+export async function waitForFile(pathname: string, maxRetries = 3, delay = 100) {
+  let lastError: any;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      if (await fileExists(pathname)) {
+        return true;
+      } else {
+        throw new Error(`file not found: ${pathname}`);
+      }
+    } catch (error) {
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
 export async function clearCache() {
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   const retention = config.get(ConfParams.CACHE_RETENTION) as number;
