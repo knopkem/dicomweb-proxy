@@ -36,13 +36,21 @@ export class LoggerSingleton {
       const pinoLogger = pino(
         { level: 'info' },
         pino.transport({
-          target: 'pino-roll',
-          options: {
-            file: path.join(logDir, 'roll'),
-            frequency: 'daily',
-            extension: '.log',
-            mkdir: true,
-          },
+          targets: [
+            {
+              target: 'pino/file',
+              options: { destination: 1 }, // stdout
+            },
+            {
+              target: 'pino-roll',
+              options: {
+                file: path.join(logDir, 'roll'),
+                frequency: 'daily',
+                extension: '.log',
+                mkdir: true,
+              },
+            },
+          ],
         }),
       );
 

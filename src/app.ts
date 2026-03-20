@@ -88,4 +88,11 @@ clearCache();
 setInterval(clearCache, 60000);
 
 logger.info('starting webserver...', port);
-server.listen({ port, host: '0.0.0.0' });
+server.listen({ port, host: config.get(ConfParams.HTTP_IP) }).then(() => {
+  logger.info(`webserver listening on port ${port}`);
+}).catch((err) => {
+  logger.error('error starting webserver:');
+  logger.error(err);
+});
+
+//------------------------------------------------------------------

@@ -73,7 +73,7 @@ config.peers = [{
 ```config.useCget = false;```
 
 * update webserver port:  
-```config.webserverPort = 5000;```
+```config.httpPort = 5000;```
 
 * open webbrowser and start viewing:  
 e.g. ```http://localhost:5000```
