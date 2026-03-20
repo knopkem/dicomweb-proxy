@@ -12,7 +12,7 @@ import { ConfParams, config } from './utils/config';
 import { shutdown } from './dimse/store';
 import { LoggerSingleton } from './utils/logger';
 import { socket } from './socket';
-import * as closeWithGrace from 'close-with-grace';
+import closeWithGrace from 'close-with-grace';
 
 const logger = LoggerSingleton.Instance;
 
@@ -50,7 +50,7 @@ process.on('uncaughtException', async (err) => {
 
 //------------------------------------------------------------------
 
-closeWithGrace.default({ delay: 500 }, async function ({ signal, err, manual }) {
+closeWithGrace({ delay: 500 }, async function ({ signal, err, manual }) {
   if (err) {
     console.error(err)
   }

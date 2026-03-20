@@ -1,5 +1,5 @@
 import { fetchMeta } from '../dimse/fetchMeta';
-import { FastifyInstance } from 'fastify';
+import { FastifyPluginCallback } from 'fastify';
 import { doFind } from '../dimse/findData';
 import { QUERY_LEVEL } from '../dimse/querLevel';
 import { doWadoRs } from '../dimse/wadoRs';
@@ -34,7 +34,7 @@ interface QueryParams {
   [key: string]: string;
 }
 
-module.exports = function (server: FastifyInstance, opts: unknown, done: () => void) {
+const routes: FastifyPluginCallback = function (server, opts, done) {
   server.get<{
     Querystring: QueryParams;
   }>('/rs/studies', async (req, reply) => {
@@ -44,7 +44,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(json);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -63,7 +63,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(rsp.buffer); 
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -81,7 +81,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -99,7 +99,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -117,7 +117,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -135,7 +135,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(json);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -155,7 +155,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -173,7 +173,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(json);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -192,7 +192,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
         return reply.send(rsp.buffer);
       } catch (error) {
         logger.error(error);
-        return reply.send(500);
+        return reply.code(500).send();
       }
     });
   
@@ -210,7 +210,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -228,7 +228,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -246,7 +246,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -265,7 +265,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(json);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -285,7 +285,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(rsp);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -303,7 +303,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -322,7 +322,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -340,7 +340,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
     }
     catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -357,7 +357,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(rsp.buffer);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -376,7 +376,7 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(rsp.buffer);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
@@ -393,11 +393,13 @@ module.exports = function (server: FastifyInstance, opts: unknown, done: () => v
       return reply.send(rsp.buffer);
     } catch (error) {
       logger.error(error);
-      return reply.send(500);
+      return reply.code(500).send();
     }
   });
 
   done();
 };
+
+module.exports = routes;
 
 //------------------------------------------------------------------
