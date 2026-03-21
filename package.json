@@ -36,7 +36,7 @@
     "close-with-grace": "^2.5.0",
     "config": "^4.4.1",
     "deepmerge": "^4.3.1",
-    "dicom-dimse-native": "2.4.6",
+    "dicom-dimse-native": "2.6.0",
     "dicom-parser": "^1.8.21",
     "fastify": "^5.8.2",
     "pino": "^10.3.1",
