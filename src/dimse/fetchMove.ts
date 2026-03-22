@@ -43,24 +43,39 @@ export async function fetchMove(studyUid: string, seriesUid: string, imageUid: s
   const uidPath = queryLevelToPath(studyUid, seriesUid, imageUid, level);
 
   return new Promise((resolve, reject) => {
+    let settled = false;
     try {
       logger.info(`fetch start: ${uidPath}`);
       moveScu(moveOptions, (result: string) => {
+        if (settled || !result || result.length === 0) {
+          return;
+        }
+
         if (result && result.length > 0) {
           try {
             const json = JSON.parse(result);
-            if (json.code === 0 || json.code === 2) {
+
+            if (json.code === 1) {
+              return;
+            }
+
+            if (json.code === 0) {
+              settled = true;
               logger.info(`fetch finished: ${uidPath}`);
               resolve(result);
-            } else {
-              logger.info(JSON.parse(result));
+              return;
             }
+
+            settled = true;
+            reject(new Error(`fetch failed for ${uidPath}: ${json.message || result}`));
           } catch (error) {
+            settled = true;
             reject(error);
           }
         }
       });
     } catch (error) {
+      settled = true;
       reject(error);
     }
   });

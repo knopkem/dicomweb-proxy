@@ -9,7 +9,7 @@ import { QUERY_LEVEL } from './querLevel';
 import deepmerge from 'deepmerge';
 import dicomParser from 'dicom-parser';
 import combineMerge from '../utils/combineMerge';
-import { fileExists, waitForFile } from '../utils/fileHelper';
+import { fileExists, resolveCachedInstancePath, waitForCachedInstancePath } from '../utils/fileHelper';
 import { execFile as exFile } from 'child_process';
 import util from 'util';
 
@@ -79,17 +79,16 @@ async function convertToJpeg(filepath: string, asThumbnail = false) {
  * Attaches needed headers
  */
 interface AddFileToBuffer {
-  pathname: string;
-  filename: string;
+  filePath: string;
   instanceInfo: InstanceInfo;
   dataFormat?: DataFormat;
 }
 
-async function addFileToBuffer({ pathname, filename, dataFormat, instanceInfo }: AddFileToBuffer): Promise<Buffer> {
+async function addFileToBuffer({ filePath, dataFormat, instanceInfo }: AddFileToBuffer): Promise<Buffer> {
   const logger = LoggerSingleton.Instance;
-  const filepath = path.join(pathname, filename);
   const buffArray: Buffer[] = [];
   let transferSyntax;
+  const outputDirectory = path.dirname(filePath);
   // If there is a data format, use default compression
   if (dataFormat) {
     transferSyntax = '1.2.840.10008.1.2';
@@ -105,13 +104,13 @@ async function addFileToBuffer({ pathname, filename, dataFormat, instanceInfo }:
 
   // Compress the file
   try {
-    await compressFile(filepath, pathname, transferSyntax);
+    await compressFile(filePath, outputDirectory, transferSyntax);
   } catch (e) {
-    logger.error('Failed to compress', filepath);
+    logger.error('Failed to compress', filePath);
   }
 
   // This will throw out if the file doesn't OK (but that's what we want)
-  const data = await fs.readFile(filepath);
+  const data = await fs.readFile(filePath);
   let returnData;
   switch (dataFormat) {
     case 'bulkdata': {
@@ -133,7 +132,7 @@ async function addFileToBuffer({ pathname, filename, dataFormat, instanceInfo }:
     case 'rendered': {
       // Convert the DCM file to a JPEG and return that
       buffArray.push(Buffer.from(`Content-Type:image/jpeg;${term}`));
-      returnData = await convertToJpeg(filepath);
+      returnData = await convertToJpeg(filePath);
       break;
     }
     default: {
@@ -155,82 +154,88 @@ type InstanceInfo = {
   instance?: string;
 };
 
+type ResolvedInstanceInfo = InstanceInfo & {
+  filePath: string;
+};
+
+async function resolveRequestedInstances(
+  storagePath: string,
+  studyInstanceUid: string,
+  seriesInstanceUid?: string,
+  sopInstanceUid?: string
+): Promise<ResolvedInstanceInfo[]> {
+  if (sopInstanceUid) {
+    return [{
+      study: studyInstanceUid,
+      series: seriesInstanceUid,
+      instance: sopInstanceUid,
+      filePath: (await resolveCachedInstancePath(storagePath, studyInstanceUid, sopInstanceUid)) ?? '',
+    }];
+  }
+
+  const json = deepmerge.all(
+    await doFind(QUERY_LEVEL.IMAGE, {
+      StudyInstanceUID: studyInstanceUid,
+      SeriesInstanceUID: seriesInstanceUid ?? '',
+      SOPInstanceUID: '',
+    }),
+    { arrayMerge: combineMerge }
+  ) as QidoResponse[];
+
+  return Promise.all(
+    json
+      .filter((instance) => instance['00080018'])
+      .map(async (instance) => {
+        const instanceUid = instance['00080018'].Value[0];
+        const seriesUid = instance['0020000E'].Value[0];
+        return {
+          study: studyInstanceUid,
+          series: seriesUid,
+          instance: instanceUid,
+          filePath: (await resolveCachedInstancePath(storagePath, studyInstanceUid, instanceUid)) ?? '',
+        };
+      })
+  );
+}
+
 export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanceUid, dataFormat }: WadoRsArgs): Promise<WadoRsResponse> {
   const logger = LoggerSingleton.Instance;
   // Set up all the paths and query levels.
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   let queryLevel = QUERY_LEVEL.STUDY;
-  const studyPath = path.join(storagePath, studyInstanceUid);
-  let pathname = studyPath;
-  let filename = '';
   if (seriesInstanceUid) {
     queryLevel = QUERY_LEVEL.SERIES;
   }
   if (sopInstanceUid) {
-    filename = sopInstanceUid;
-    pathname = path.join(pathname, sopInstanceUid);
+    queryLevel = QUERY_LEVEL.IMAGE;
   }
 
-  // Is the path that we have a directory or a file?
-  let isDir = true;
-  if (await fileExists(pathname)) {
-    const stat = await fs.stat(pathname);
-    isDir = await stat.isDirectory();
+  let foundInstances = await resolveRequestedInstances(storagePath, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
+  if (foundInstances.length === 0) {
+    throw new Error(`no instances found for study ${studyInstanceUid}`);
   }
-  let useCache = false;
-  const foundInstances: InstanceInfo[] = [];
-  if (isDir) {
-    // It's a directory, what things do we expect to find in this directory for this search?
-    const json = deepmerge.all(
-      await doFind(QUERY_LEVEL.IMAGE, {
-        StudyInstanceUID: studyInstanceUid,
-        SeriesInstanceUID: seriesInstanceUid ?? '',
-        SOPInstanceUID: sopInstanceUid ?? '',
-      }),
-      { arrayMerge: combineMerge }
-    ) as QidoResponse[];
-    const foundPromises = await Promise.all(
-      json.map(async (instance) => {
-        if (instance['00080018']) {
-          const instanceUid = instance['00080018'].Value[0];
-          const seriesUid = instance['0020000E'].Value[0];
-          foundInstances.push({
-            study: studyInstanceUid,
-            series: seriesUid,
-            instance: instanceUid,
-          });
-          return fileExists(path.join(studyPath, instanceUid));
-        }
-        return true;
-      })
-    );
-
-    // If all of the files for this search exist, then we're gonna use the cache!
-    useCache = foundPromises.reduce((prev, curr) => prev && curr, true);
-  } else {
-    // If the file exists, use the cache
-    useCache = await fileExists(pathname);
-  }
+  let useCache = foundInstances.every((instance) => !!instance.filePath);
 
   if (!useCache) {
     // We're not using the cache, so go and fetch the files. This will happen even if just one file is missing.
     // Could this be improved to just get the needed files?
-    logger.info(`fetching ${pathname}`);
+    logger.info(`fetching ${studyInstanceUid}/${seriesInstanceUid ?? ''}/${sopInstanceUid ?? ''}`);
     await waitOrFetchData(studyInstanceUid, seriesInstanceUid ?? '', sopInstanceUid ?? '', queryLevel);
 
     // Check if the file actually exists on disk, it appears that on some
     // os's/filesystems, the DIMSE request may complete before the data is
     // actually written to disk.
-    const fileOnDisk = await waitForFile(pathname);
-    if (fileOnDisk) {
-      isDir = false;
-    }
+    foundInstances = await Promise.all(
+      foundInstances.map(async (instance) => ({
+        ...instance,
+        filePath: await waitForCachedInstancePath(storagePath, instance.study, instance.instance as string),
+      }))
+    );
   }
 
   // We only need a thumbnail - get it and bail.
   if (dataFormat === 'thumbnail') {
-    // Just use the first of the foundInstances for this search
-    const filePath = isDir ? path.join(pathname, foundInstances[0].instance as string) : pathname;
+    const filePath = foundInstances[0].filePath;
     const buff = await convertToJpeg(filePath, true);
     if (buff) {
       return {
@@ -244,22 +249,11 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
 
   let buffers: (Buffer | undefined)[] = [];
   try {
-    if (isDir) {
-      // We're in a directory, loop through the files we want and attach them to the return buffer
-      const files = await fs.readdir(pathname);
-      buffers = await Promise.all(
-        files.map(async (file) => {
-          const instanceInfo = foundInstances.find((i) => i.instance === file);
-          if (instanceInfo) {
-            return addFileToBuffer({ pathname, filename: file, dataFormat, instanceInfo });
-          }
-        })
-      );
-    } else {
-      // Attach the one file that we need to the return buffer
-      const instanceInfo = { study: studyInstanceUid, series: seriesInstanceUid, instance: sopInstanceUid };
-      buffers = [await addFileToBuffer({ pathname: studyPath, filename, dataFormat, instanceInfo })];
-    }
+    buffers = await Promise.all(
+      foundInstances.map(async (instanceInfo) =>
+        addFileToBuffer({ filePath: instanceInfo.filePath, dataFormat, instanceInfo })
+      )
+    );
 
     // Set up the boundaries and join together all of the file buffers to form
     // the final buffer to return to the client.
@@ -289,7 +283,7 @@ export async function doWadoRs({ studyInstanceUid, seriesInstanceUid, sopInstanc
       buffer: Buffer.concat(buffArray),
     });
   } catch (error) {
-    logger.error(`failed to process ${pathname}`);
+    logger.error(`failed to process ${studyInstanceUid}/${seriesInstanceUid ?? ''}/${sopInstanceUid ?? ''}`);
     throw error;
   }
 }

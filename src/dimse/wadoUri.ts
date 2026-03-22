@@ -1,6 +1,6 @@
 import { ConfParams, config } from '../utils/config';
 import { LoggerSingleton } from '../utils/logger';
-import { fileExists } from '../utils/fileHelper';
+import { resolveCachedInstancePath, waitForCachedInstancePath } from '../utils/fileHelper';
 import { compressFile } from './compressFile';
 import { waitOrFetchData } from './fetchData';
 import path from 'path';
@@ -22,12 +22,10 @@ export async function doWadoUri({ studyInstanceUid, seriesInstanceUid, sopInstan
   const level = stringToQueryLevel(fetchLevel);
 
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
-  const studyPath = path.join(storagePath, studyInstanceUid);
-  const pathname = path.join(studyPath, sopInstanceUid);
+  let pathname = await resolveCachedInstancePath(storagePath, studyInstanceUid, sopInstanceUid);
   
   // fetch if needed
-  const exists = await fileExists(pathname);
-  if (!exists) {
+  if (!pathname) {
     try {
       await waitOrFetchData(studyInstanceUid, seriesInstanceUid, sopInstanceUid, level);
     } catch (err) {
@@ -36,15 +34,11 @@ export async function doWadoUri({ studyInstanceUid, seriesInstanceUid, sopInstan
     }
   }
 
-  const postExists = await fileExists(pathname);
-  if (!postExists) {
-    const msg = `file not found ${pathname}`;
-    logger.error(msg);
-    throw msg;
-  }
+  pathname = pathname ?? await waitForCachedInstancePath(storagePath, studyInstanceUid, sopInstanceUid);
+  const outputDirectory = path.dirname(pathname);
 
   try {
-    await compressFile(pathname, studyPath);
+    await compressFile(pathname, outputDirectory);
   } catch (error) {
     logger.error(error);
     const msg = `failed to compress ${pathname}`;

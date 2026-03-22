@@ -16,6 +16,13 @@ const getDirectories = async (source: string) => {
   }
 }
 
+export function getCachedInstancePathCandidates(storagePath: string, studyInstanceUID: string, sopInstanceUID: string): string[] {
+  return [
+    path.join(storagePath, studyInstanceUID, sopInstanceUID),
+    path.join(storagePath, `${sopInstanceUID}.dcm`),
+  ];
+}
+
 export async function fileExists(pathname: string): Promise<boolean> {
   try {
     const stat = await promises.stat(pathname);
@@ -43,6 +50,39 @@ export async function waitForFile(pathname: string, maxRetries = 3, delay = 100)
   throw lastError;
 }
 
+export async function resolveCachedInstancePath(
+  storagePath: string,
+  studyInstanceUID: string,
+  sopInstanceUID: string
+): Promise<string | undefined> {
+  const candidates = getCachedInstancePathCandidates(storagePath, studyInstanceUID, sopInstanceUID);
+  for (const candidate of candidates) {
+    if (await fileExists(candidate)) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+export async function waitForCachedInstancePath(
+  storagePath: string,
+  studyInstanceUID: string,
+  sopInstanceUID: string,
+  maxRetries = 3,
+  delay = 100
+): Promise<string> {
+  let lastError: Error | undefined;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const resolved = await resolveCachedInstancePath(storagePath, studyInstanceUID, sopInstanceUID);
+    if (resolved) {
+      return resolved;
+    }
+    lastError = new Error(`file not found for SOP ${sopInstanceUID} in ${storagePath}`);
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  throw lastError ?? new Error(`file not found for SOP ${sopInstanceUID} in ${storagePath}`);
+}
+
 export async function clearCache() {
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   const retention = config.get(ConfParams.CACHE_RETENTION) as number;
@@ -53,11 +93,14 @@ export async function clearCache() {
     return;
   }
 
-  const dirs = await getDirectories(storagePath);
+  const entries = await promises.readdir(storagePath, { withFileTypes: true }).catch(() => []);
   const dateNow = new Date();
 
-  for (const dir of dirs) {
-    const filepath = path.join(storagePath, dir);
+  for (const entry of entries) {
+    if (!entry.isDirectory() && !(entry.isFile() && entry.name.endsWith('.dcm'))) {
+      continue;
+    }
+    const filepath = path.join(storagePath, entry.name);
     const stats = await promises.stat(filepath);
     const mtime = stats.mtime;
     const minutes = (dateNow.getTime() - mtime.getTime()) / 60000;

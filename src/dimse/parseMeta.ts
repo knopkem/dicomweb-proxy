@@ -1,11 +1,9 @@
 import { LoggerSingleton } from '../utils/logger';
 import { ConfParams, config } from '../utils/config';
-import { fileExists } from '../utils/fileHelper';
+import { fileExists, waitForCachedInstancePath } from '../utils/fileHelper';
 import { get_element } from '@iwharris/dicom-data-dictionary';
 import dicomParser from 'dicom-parser';
 import fs from 'fs';
-import path from 'path';
-
 interface ValueType {
   Value?: string[] | number[] | unknown[];
   BulkDataURI?: string;
@@ -136,8 +134,9 @@ export function parseMeta(json: object, studyInstanceUID: string, seriesInstance
   const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
   for (const [key] of Object.entries(json)) {
     const sopInstanceUid = json[key]['00080018'].Value[0];
-    const pathname = path.join(storagePath, studyInstanceUID, sopInstanceUid);
-    parsing.push(parseFile(pathname));
+    parsing.push(
+      waitForCachedInstancePath(storagePath, studyInstanceUID, sopInstanceUid).then((pathname) => parseFile(pathname))
+    );
   }
   return Promise.all(parsing);
 }

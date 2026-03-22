@@ -1,6 +1,6 @@
 import { sendCFindRequest, IQueryParams } from './findData';
 import { config, ConfParams } from '../utils/config';
-import { fileExists } from '../utils/fileHelper';
+import { resolveCachedInstancePath } from '../utils/fileHelper';
 import { LoggerSingleton } from '../utils/logger';
 import { QUERY_LEVEL } from './querLevel';
 import { waitOrFetchDataOnAet } from './fetchData';
@@ -33,9 +33,8 @@ export async function fetchMeta(query: IQueryParams, studyInstanceUID: string, s
     for (const [key] of Object.entries(json)) {
       const sopInstanceUid = json[key]['00080018'].Value[0];
       const storagePath = config.get(ConfParams.STORAGE_PATH) as string;
-      const pathname = path.join(storagePath, studyInstanceUID, sopInstanceUid);
-      const exists = await fileExists(pathname);
-      if (!exists) {
+      const pathname = await resolveCachedInstancePath(storagePath, studyInstanceUID, sopInstanceUid);
+      if (!pathname) {
         logger.info(`fetching series ${seriesInstanceUID}`);
         await waitOrFetchDataOnAet(studyInstanceUID, seriesInstanceUID, '', QUERY_LEVEL.SERIES, peer);
         break;
